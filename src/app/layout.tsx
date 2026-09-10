@@ -8,11 +8,11 @@ export const metadata: Metadata = {
   description: "Professional email outreach automation with SendGrid dynamic templates and intelligent follow-up sequences.",
   icons: {
     icon: [
-      { url: "/icon.png?v=2", sizes: "32x32", type: "image/png" },
-      { url: "/favicon.ico?v=2" },
+      { url: "/icon.png?v=3", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.ico?v=3" },
     ],
-    shortcut: "/favicon.ico?v=2",
-    apple: "/apple-touch-icon.png?v=2",
+    shortcut: "/favicon.ico?v=3",
+    apple: "/apple-touch-icon.png?v=3",
   },
 };
 
@@ -24,9 +24,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" type="image/png" sizes="32x32" href="/icon.png?v=2" />
-        <link rel="shortcut icon" href="/favicon.ico?v=2" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/icon.png?v=3" />
+        <link rel="shortcut icon" href="/favicon.ico?v=3" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
       </head>
       <body>
         <div className="app-layout">
