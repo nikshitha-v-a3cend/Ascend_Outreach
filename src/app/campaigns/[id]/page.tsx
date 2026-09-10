@@ -77,6 +77,33 @@ export default function CampaignDetailPage() {
 
   useEffect(() => { load() }, [id])
 
+  const [runningFollowups, setRunningFollowups] = useState(false)
+  const [cronFeedback, setCronFeedback] = useState<string | null>(null)
+
+  const handleProcessFollowups = async () => {
+    setRunningFollowups(true)
+    setCronFeedback(null)
+    try {
+      const res = await fetch('/api/cron/process-followups', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer a3cend_cron_secret_local_dev_only`,
+        },
+      })
+      const data = await res.json() as { processed?: number; sent?: number; skipped?: number; message?: string }
+      setCronFeedback(
+        data.sent !== undefined
+          ? `Processed ${data.processed ?? 0} contact(s): Sent ${data.sent} follow-up email(s), skipped ${data.skipped ?? 0}.`
+          : data.message || 'Follow-ups processed.'
+      )
+      load()
+    } catch {
+      setCronFeedback('Failed to process follow-ups.')
+    } finally {
+      setRunningFollowups(false)
+    }
+  }
+
   const handleAction = async (action: 'pause' | 'resume' | 'stop') => {
     setActionLoading(action)
     await fetch(`/api/campaigns/${id}/${action}`, { method: 'POST' })
@@ -172,11 +199,28 @@ export default function CampaignDetailPage() {
               <Square size={14} /> Stop
             </button>
           )}
+          {campaign.status === 'active' && (
+            <button
+              id="run-followups-btn"
+              className="btn btn-primary"
+              onClick={handleProcessFollowups}
+              disabled={runningFollowups}
+              title="Process due follow-ups immediately"
+            >
+              <Send size={14} /> {runningFollowups ? 'Processing...' : 'Run Follow-ups Now'}
+            </button>
+          )}
           <button className="btn btn-secondary" onClick={load} id="refresh-btn">
             <RefreshCw size={14} /> Refresh
           </button>
         </div>
       </div>
+
+      {cronFeedback && (
+        <div className="alert alert-info" style={{ marginBottom: 20 }}>
+          {cronFeedback}
+        </div>
+      )}
 
       {/* Stats bar */}
       {stats && (
