@@ -2,30 +2,39 @@
 @import "tailwindcss";
 
 :root {
-  /* Brand colors */
-  --brand-primary: #6366f1;
-  --brand-primary-dark: #4f46e5;
-  --brand-accent: #8b5cf6;
-  --brand-glow: rgba(99, 102, 241, 0.15);
+  /* A3CEND Brand Colors (extracted from official logo) */
+  --brand-teal: #028097;          /* A3CEND Deep Ocean Teal ("A", "E", "D") */
+  --brand-teal-dark: #015f70;     /* Deep Teal Dark for hovers */
+  --brand-cyan: #05abc5;          /* A3CEND Electric Aqua / Bright Cyan ("N", "C") */
+  --brand-coral: #fc6791;         /* A3CEND Signature Coral Pink ("3") */
+  --brand-coral-light: #fd97a5;   /* Soft Pink tint */
 
-  /* Dark theme surfaces */
-  --bg-base: #0a0b14;
-  --bg-surface: #111827;
-  --bg-surface-2: #1a2235;
-  --bg-surface-3: #1e293b;
-  --bg-border: #1e2d45;
-  --bg-border-subtle: rgba(99, 120, 160, 0.15);
+  /* System Brand Tokens */
+  --brand-primary: #028097;
+  --brand-primary-dark: #015f70;
+  --brand-secondary: #05abc5;
+  --brand-accent: #fc6791;
+  --brand-glow: rgba(5, 171, 197, 0.22);
+  --brand-coral-glow: rgba(252, 103, 145, 0.25);
+
+  /* Modern Deep Teal Dark Theme Surfaces */
+  --bg-base: #060e14;
+  --bg-surface: #0a1721;
+  --bg-surface-2: #10212f;
+  --bg-surface-3: #162b3d;
+  --bg-border: #1a354b;
+  --bg-border-subtle: rgba(5, 171, 197, 0.15);
 
   /* Text */
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a9ba;
+  --text-muted: #5e7a91;
 
   /* Status colors */
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
-  --color-info: #3b82f6;
+  --color-info: #05abc5;
 
   /* Sidebar */
   --sidebar-width: 240px;
@@ -197,12 +206,65 @@ body {
 }
 
 .btn-primary {
-  background: var(--brand-primary);
+  background: linear-gradient(135deg, var(--brand-teal) 0%, var(--brand-cyan) 100%);
   color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(2, 128, 151, 0.25);
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--brand-primary-dark);
-  box-shadow: 0 0 16px var(--brand-glow);
+  background: linear-gradient(135deg, #016e82 0%, #049bb3 100%);
+  box-shadow: 0 4px 18px var(--brand-glow);
+  transform: translateY(-1px);
+}
+
+.btn-accent {
+  background: linear-gradient(135deg, var(--brand-coral) 0%, #fe7a9f 100%);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(252, 103, 145, 0.3);
+}
+.btn-accent:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e6557e 0%, #fd6892 100%);
+  box-shadow: 0 4px 18px var(--brand-coral-glow);
+  transform: translateY(-1px);
+}
+
+/* Sidebar Nav Links */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  margin: 3px 12px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 13px;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.nav-link:hover {
+  background: rgba(5, 171, 197, 0.08);
+  color: #f8fafc;
+}
+
+.nav-link.active {
+  background: linear-gradient(90deg, rgba(2, 128, 151, 0.25) 0%, rgba(5, 171, 197, 0.08) 100%);
+  color: var(--brand-cyan);
+  font-weight: 600;
+}
+
+.nav-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: var(--brand-coral);
+  border-radius: 0 4px 4px 0;
 }
 
 .btn-secondary {

@@ -9,7 +9,6 @@ import {
   Mail,
   Activity,
   Settings,
-  Zap,
 } from 'lucide-react'
 
 const navItems = [
@@ -28,28 +27,45 @@ export function Sidebar() {
     <aside className="app-sidebar">
       {/* Logo */}
       <div style={{
-        padding: '20px 20px 16px',
+        padding: '18px 16px 14px',
         borderBottom: '1px solid var(--bg-border)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{
-            width: 34,
-            height: 34,
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-            borderRadius: 8,
+            background: '#ffffff',
+            padding: '8px 14px',
+            borderRadius: 10,
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-            <Zap size={18} color="white" />
+            <img
+              src="/a3cend-logo.png"
+              alt="A3CEND"
+              style={{ height: 28, width: 'auto', display: 'block', objectFit: 'contain' }}
+            />
           </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              A3CEND
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
+            <span style={{
+              fontSize: 11,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              color: 'var(--brand-coral)',
+            }}>
               Outreach
-            </div>
+            </span>
+            <span style={{
+              fontSize: 10,
+              padding: '1px 6px',
+              borderRadius: 4,
+              background: 'rgba(5, 171, 197, 0.15)',
+              color: 'var(--brand-cyan)',
+              fontWeight: 600,
+            }}>
+              Active
+            </span>
           </div>
         </div>
       </div>

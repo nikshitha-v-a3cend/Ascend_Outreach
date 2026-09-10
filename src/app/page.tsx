@@ -43,14 +43,14 @@ export default function DashboardPage() {
 
   const statCards = stats
     ? [
-        { label: 'Total Contacts', value: stats.total_contacts, icon: Users, color: '#6366f1' },
-        { label: 'Active Campaigns', value: stats.active_campaigns, icon: Megaphone, color: '#10b981' },
-        { label: 'Emails Sent', value: stats.emails_sent, icon: Mail, color: '#3b82f6' },
-        { label: 'Opened', value: stats.opened, icon: Eye, color: '#8b5cf6' },
-        { label: 'Replies', value: stats.replies, icon: MessageSquare, color: '#2dd4bf' },
-        { label: 'Follow-ups Sent', value: stats.follow_ups_sent, icon: RefreshCcw, color: '#c084fc' },
-        { label: 'Bounced', value: stats.bounced, icon: AlertTriangle, color: '#f87171' },
-        { label: 'Unsubscribed', value: stats.unsubscribed, icon: TrendingUp, color: '#fb923c' },
+        { label: 'Total Contacts', value: stats.total_contacts, icon: Users, color: 'var(--brand-teal)' },
+        { label: 'Active Campaigns', value: stats.active_campaigns, icon: Megaphone, color: 'var(--brand-cyan)' },
+        { label: 'Emails Sent', value: stats.emails_sent, icon: Mail, color: 'var(--brand-teal)' },
+        { label: 'Opened', value: stats.opened, icon: Eye, color: 'var(--color-success)' },
+        { label: 'Replies', value: stats.replies, icon: MessageSquare, color: 'var(--brand-coral)' },
+        { label: 'Follow-ups Sent', value: stats.follow_ups_sent, icon: RefreshCcw, color: 'var(--brand-cyan)' },
+        { label: 'Bounced', value: stats.bounced, icon: AlertTriangle, color: 'var(--color-error)' },
+        { label: 'Unsubscribed', value: stats.unsubscribed, icon: TrendingUp, color: 'var(--color-warning)' },
       ]
     : []
 

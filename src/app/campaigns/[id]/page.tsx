@@ -241,12 +241,12 @@ export default function CampaignDetailPage() {
             <div className="stat-value" style={{ color: 'var(--brand-secondary)' }}>{stats.opened}</div>
             <div className="stat-label">Opened</div>
           </div>
-          <div className="stat-card" style={{ '--accent-color': 'var(--color-success)' } as React.CSSProperties}>
-            <div className="stat-value" style={{ color: 'var(--color-success)' }}>{stats.replied}</div>
+          <div className="stat-card" style={{ '--accent-color': 'var(--brand-coral)' } as React.CSSProperties}>
+            <div className="stat-value" style={{ color: 'var(--brand-coral)' }}>{stats.replied}</div>
             <div className="stat-label">Replied</div>
           </div>
-          <div className="stat-card" style={{ '--accent-color': '#a855f7' } as React.CSSProperties}>
-            <div className="stat-value" style={{ color: '#a855f7' }}>{stats.follow_up_sent}</div>
+          <div className="stat-card" style={{ '--accent-color': 'var(--brand-cyan)' } as React.CSSProperties}>
+            <div className="stat-value" style={{ color: 'var(--brand-cyan)' }}>{stats.follow_up_sent}</div>
             <div className="stat-label">Follow-up Sent</div>
           </div>
           <div className="stat-card" style={{ '--accent-color': 'var(--color-error)' } as React.CSSProperties}>
