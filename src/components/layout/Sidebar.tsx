@@ -27,26 +27,22 @@ export function Sidebar() {
     <aside className="app-sidebar">
       {/* Logo */}
       <div style={{
-        padding: '18px 16px 14px',
+        padding: '20px 18px 16px',
         borderBottom: '1px solid var(--bg-border)',
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{
-            background: '#ffffff',
-            padding: '8px 14px',
-            borderRadius: 10,
-            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: 'flex-start',
           }}>
             <img
               src="/a3cend-logo.png"
               alt="A3CEND"
-              style={{ height: 28, width: 'auto', display: 'block', objectFit: 'contain' }}
+              style={{ height: 32, width: 'auto', display: 'block', objectFit: 'contain' }}
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px' }}>
             <span style={{
               fontSize: 11,
               fontWeight: 700,
@@ -58,20 +54,20 @@ export function Sidebar() {
             </span>
             <span style={{
               fontSize: 10,
-              padding: '1px 6px',
-              borderRadius: 4,
-              background: 'rgba(5, 171, 197, 0.15)',
-              color: 'var(--brand-cyan)',
+              padding: '2px 8px',
+              borderRadius: 999,
+              background: 'rgba(2, 128, 151, 0.1)',
+              color: 'var(--brand-teal)',
               fontWeight: 600,
             }}>
-              Active
+              Test Mode
             </span>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, paddingTop: 12, paddingBottom: 12 }}>
+      <nav style={{ flex: 1, paddingTop: 14, paddingBottom: 14 }}>
         {navItems.map(({ href, label, icon: Icon }) => {
           const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href)
           return (
@@ -89,13 +85,13 @@ export function Sidebar() {
 
       {/* Footer */}
       <div style={{
-        padding: '12px 16px',
+        padding: '14px 20px',
         borderTop: '1px solid var(--bg-border)',
         fontSize: 11,
         color: 'var(--text-muted)',
       }}>
-        <div>A3CEND Outreach v1.0</div>
-        <div style={{ marginTop: 2 }}>Test Mode Active</div>
+        <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>A3CEND Outreach</div>
+        <div style={{ marginTop: 2 }}>v1.0 · Automated Sequences</div>
       </div>
     </aside>
   )

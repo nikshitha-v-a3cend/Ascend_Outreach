@@ -6,6 +6,13 @@ import { TestModeBanner } from "@/components/layout/TestModeBanner";
 export const metadata: Metadata = {
   title: "A3CEND Outreach — Email Automation Platform",
   description: "Professional email outreach automation with SendGrid dynamic templates and intelligent follow-up sequences.",
+  icons: {
+    icon: [
+      { url: '/icon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.ico' },
+    ],
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({
