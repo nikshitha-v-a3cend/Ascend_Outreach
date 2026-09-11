@@ -144,7 +144,10 @@ export default function DashboardPage() {
                         )}
                         <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 2 }}>{item.message}</div>
                         <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                          {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                          {(() => {
+                            const ts = (item.metadata?.timestamp as string) || item.created_at
+                            return formatDistanceToNow(new Date(ts), { addSuffix: true })
+                          })()}
                         </div>
                       </div>
                     </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 
 interface ActivityItem {
@@ -98,13 +99,18 @@ export default function ActivityPage() {
                     )}
                     <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>{item.message}</div>
                     <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'var(--text-muted)' }}>
-                      <span>{formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}</span>
-                      <a
+                      <span>
+                        {(() => {
+                          const ts = (item.metadata?.timestamp as string) || item.created_at
+                          return formatDistanceToNow(new Date(ts), { addSuffix: true })
+                        })()}
+                      </span>
+                      <Link
                         href={`/campaigns/${item.campaign_id}`}
                         style={{ color: 'var(--brand-primary)', textDecoration: 'none' }}
                       >
                         View Campaign →
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </div>
