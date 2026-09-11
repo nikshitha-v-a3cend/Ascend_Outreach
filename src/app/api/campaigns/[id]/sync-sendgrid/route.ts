@@ -76,21 +76,25 @@ export async function POST(
     )
 
     const totalOpens = matchingMsgs.reduce((acc, m) => acc + (m.opens_count || 0), 0)
-    const latestOpenMsg = matchingMsgs.find((m) => m.opens_count > 0)
+    const openMsgs = matchingMsgs.filter((m) => (m.opens_count || 0) > 0)
+    openMsgs.sort((a, b) => new Date(b.last_event_time).getTime() - new Date(a.last_event_time).getTime())
+    const latestOpenMsg = openMsgs[0]
 
-    if (totalOpens > 0 && !cc.opened) {
+    if (totalOpens > 0) {
       const openTimestamp = latestOpenMsg?.last_event_time || new Date().toISOString()
+      const needsUpdate = !cc.opened || cc.email_1_opened_at !== openTimestamp
 
-      type CCUpdate = Database['public']['Tables']['campaign_contacts']['Update']
-      const updateData: CCUpdate = {
-        opened: true,
-        email_1_opened_at: openTimestamp,
-      }
-      if (cc.status === 'sent' || cc.status === 'queued') {
-        updateData.status = 'opened'
-      }
+      if (needsUpdate) {
+        type CCUpdate = Database['public']['Tables']['campaign_contacts']['Update']
+        const updateData: CCUpdate = {
+          opened: true,
+          email_1_opened_at: openTimestamp,
+        }
+        if (cc.status === 'sent' || cc.status === 'queued') {
+          updateData.status = 'opened'
+        }
 
-      await db.from('campaign_contacts').update(updateData).eq('id', cc.id)
+        await db.from('campaign_contacts').update(updateData).eq('id', cc.id)
 
       await db.from('email_events').insert({
         campaign_id: campaignId,
@@ -120,6 +124,7 @@ export async function POST(
       updatedEmails.push(contact.email)
     }
   }
+}
 
   return Response.json({
     success: true,

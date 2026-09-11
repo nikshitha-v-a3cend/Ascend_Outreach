@@ -32,6 +32,8 @@ interface CampaignContact {
   bounced: boolean
   unsubscribed: boolean
   email_1_sent_at: string | null
+  email_1_opened_at?: string | null
+  email_1_replied_at?: string | null
   follow_up_sent_at: string | null
   follow_up_due_at: string | null
   updated_at: string
@@ -449,7 +451,11 @@ export default function CampaignDetailPage() {
                       </span>
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                      {formatDistanceToNow(new Date(cc.updated_at), { addSuffix: true })}
+                      {(() => {
+                        const activityTime = cc.email_1_replied_at || cc.email_1_opened_at || cc.email_1_sent_at
+                        if (!activityTime) return '—'
+                        return formatDistanceToNow(new Date(activityTime), { addSuffix: true })
+                      })()}
                     </td>
                     <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                       {cc.follow_up_due_at && !cc.follow_up_sent_at && !cc.replied && !cc.bounced
