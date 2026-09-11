@@ -5,6 +5,9 @@
 
 import { NextRequest } from 'next/server'
 import { getServerSupabase } from '@/lib/supabase/server'
+import type { Database } from '@/lib/supabase/database.types'
+
+type CampaignContactUpdate = Database['public']['Tables']['campaign_contacts']['Update']
 
 // Tell Next.js to use Node.js runtime (not Edge) for DB access
 export const runtime = 'nodejs'
@@ -130,7 +133,7 @@ async function processEvent(db: ReturnType<typeof import('@/lib/supabase/server'
 
   switch (eventType) {
     case 'open': {
-      const updates: Record<string, unknown> = { opened: true }
+      const updates: CampaignContactUpdate = { opened: true }
       if (!cc.email_1_opened_at) {
         updates.email_1_opened_at = eventTimestamp
         updates.status = 'opened'

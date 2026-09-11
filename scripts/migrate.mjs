@@ -32,11 +32,6 @@ if (!supabaseUrl || !secretKey) {
 
 console.log('📡 Connecting to Supabase:', supabaseUrl)
 
-const sql = readFileSync(
-  join(__dirname, '../supabase/migrations/001_initial_schema.sql'),
-  'utf-8'
-)
-
 // Use Supabase's SQL-over-REST via the pg_execute endpoint
 // This is available on Supabase projects via the /rest/v1/rpc pattern
 // For direct SQL we need to use the Supabase Management API or pg connection

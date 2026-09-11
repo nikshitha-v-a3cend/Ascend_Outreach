@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { ArrowLeft, Save } from 'lucide-react'
 
 const DELAY_OPTIONS = [
@@ -102,7 +103,7 @@ export default function NewCampaignPage() {
     <div style={{ maxWidth: 640 }}>
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <a href="/campaigns" className="btn btn-secondary btn-sm" id="back-to-campaigns"><ArrowLeft size={14} /></a>
+          <Link href="/campaigns" className="btn btn-secondary btn-sm" id="back-to-campaigns"><ArrowLeft size={14} /></Link>
           <div>
             <h1 className="page-title">New Campaign</h1>
             <p className="page-subtitle">Configure your outreach sequence</p>
@@ -291,7 +292,7 @@ export default function NewCampaignPage() {
           >
             {saving ? <><span className="spinner" />&nbsp;Creating...</> : <><Save size={16} /> Create Campaign</>}
           </button>
-          <a href="/campaigns" className="btn btn-secondary btn-lg">Cancel</a>
+          <Link href="/campaigns" className="btn btn-secondary btn-lg">Cancel</Link>
         </div>
       </form>
     </div>

@@ -1,8 +1,7 @@
 // src/app/api/dashboard/route.ts
-import { NextRequest } from 'next/server'
 import { getServerSupabase } from '@/lib/supabase/server'
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const db = getServerSupabase()
 
   const [

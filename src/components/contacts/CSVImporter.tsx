@@ -74,7 +74,7 @@ interface CSVImporterProps {
   onClose?: () => void
 }
 
-export function CSVImporter({ campaignId, campaignName, onImportComplete, onClose }: CSVImporterProps) {
+export function CSVImporter({ campaignId, onImportComplete, onClose }: CSVImporterProps) {
   const [rows, setRows] = useState<CSVRow[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [importing, setImporting] = useState(false)

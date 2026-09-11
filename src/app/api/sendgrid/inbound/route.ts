@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       .single()
 
     let campaignId: string | null = null
-    let contactId: string | null = contact?.id ?? null
+    const contactId: string | null = contact?.id ?? null
 
     // If we found the contact, find their active campaign
     if (contactId) {

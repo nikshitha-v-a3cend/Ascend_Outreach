@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const db = getServerSupabase()
     const { data, error, count } = await db

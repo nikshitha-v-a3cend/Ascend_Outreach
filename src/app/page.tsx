@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import {
   Users, Megaphone, Mail, Eye, MessageSquare, RefreshCcw, AlertTriangle, TrendingUp
 } from 'lucide-react'
@@ -62,12 +63,12 @@ export default function DashboardPage() {
           <p className="page-subtitle">Overview of your outreach campaigns</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <a href="/campaigns/new" id="new-campaign-btn" className="btn btn-primary">
+          <Link href="/campaigns/new" id="new-campaign-btn" className="btn btn-primary">
             <Megaphone size={15} /> New Campaign
-          </a>
-          <a href="/contacts" id="import-contacts-link" className="btn btn-secondary">
+          </Link>
+          <Link href="/contacts" id="import-contacts-link" className="btn btn-secondary">
             <Users size={15} /> Import Contacts
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -157,18 +158,18 @@ export default function DashboardPage() {
               <div className="card">
                 <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>Quick Actions</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <a href="/campaigns/new" className="btn btn-secondary" id="qa-new-campaign" style={{ justifyContent: 'flex-start' }}>
+                  <Link href="/campaigns/new" className="btn btn-secondary" id="qa-new-campaign" style={{ justifyContent: 'flex-start' }}>
                     <Megaphone size={15} /> Create Campaign
-                  </a>
-                  <a href="/contacts" className="btn btn-secondary" id="qa-import" style={{ justifyContent: 'flex-start' }}>
+                  </Link>
+                  <Link href="/contacts" className="btn btn-secondary" id="qa-import" style={{ justifyContent: 'flex-start' }}>
                     <Users size={15} /> Import Contacts
-                  </a>
-                  <a href="/templates" className="btn btn-secondary" id="qa-templates" style={{ justifyContent: 'flex-start' }}>
+                  </Link>
+                  <Link href="/templates" className="btn btn-secondary" id="qa-templates" style={{ justifyContent: 'flex-start' }}>
                     <Mail size={15} /> Configure Templates
-                  </a>
-                  <a href="/settings" className="btn btn-secondary" id="qa-settings" style={{ justifyContent: 'flex-start' }}>
+                  </Link>
+                  <Link href="/settings" className="btn btn-secondary" id="qa-settings" style={{ justifyContent: 'flex-start' }}>
                     Configure Settings
-                  </a>
+                  </Link>
                 </div>
               </div>
 

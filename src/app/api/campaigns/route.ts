@@ -14,7 +14,7 @@ const CreateCampaignSchema = z.object({
   test_mode: z.boolean().default(true),
 })
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const db = getServerSupabase()
     const { data: campaigns, error } = await db

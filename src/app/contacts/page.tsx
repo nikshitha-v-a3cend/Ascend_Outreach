@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Users, Search } from 'lucide-react'
 import { CSVImporter } from '@/components/contacts/CSVImporter'
 import type { Contact } from '@/lib/supabase/types'
@@ -13,8 +13,7 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
-  const loadContacts = () => {
-    setLoading(true)
+  const loadContacts = useCallback(() => {
     fetch('/api/contacts/import')
       .then((r) => r.json())
       .then((data: { contacts: Contact[]; total: number }) => {
@@ -22,9 +21,11 @@ export default function ContactsPage() {
         setTotal(data.total ?? 0)
       })
       .finally(() => setLoading(false))
-  }
+  }, [])
 
-  useEffect(() => { loadContacts() }, [])
+  useEffect(() => {
+    loadContacts()
+  }, [loadContacts])
 
   const filtered = contacts.filter((c) =>
     !search ||

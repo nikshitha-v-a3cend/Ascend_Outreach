@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -36,9 +37,12 @@ export function Sidebar() {
             alignItems: 'center',
             justifyContent: 'flex-start',
           }}>
-            <img
+            <Image
               src="/a3cend-logo.png"
               alt="A3CEND"
+              width={112}
+              height={32}
+              priority
               style={{ height: 32, width: 'auto', display: 'block', objectFit: 'contain' }}
             />
           </div>

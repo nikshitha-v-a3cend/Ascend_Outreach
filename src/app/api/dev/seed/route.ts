@@ -3,7 +3,6 @@
 // Remove this endpoint before production deployment
 // Only works after the database migration has been run
 
-import { NextRequest } from 'next/server'
 import { getServerSupabase } from '@/lib/supabase/server'
 
 const TEST_CONTACTS = [
@@ -41,7 +40,7 @@ const TEST_CONTACTS = [
   },
 ]
 
-export async function POST(_req: NextRequest) {
+export async function POST() {
   try {
     const db = getServerSupabase()
 
@@ -69,6 +68,6 @@ export async function POST(_req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
-  return POST(req)
+export async function GET() {
+  return POST()
 }

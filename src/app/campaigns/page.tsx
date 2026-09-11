@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Plus, Megaphone } from 'lucide-react'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { formatDistanceToNow } from 'date-fns'
@@ -40,9 +41,9 @@ export default function CampaignsPage() {
           <h1 className="page-title">Campaigns</h1>
           <p className="page-subtitle">{campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}</p>
         </div>
-        <a href="/campaigns/new" id="new-campaign-link" className="btn btn-primary">
+        <Link href="/campaigns/new" id="new-campaign-link" className="btn btn-primary">
           <Plus size={15} /> New Campaign
-        </a>
+        </Link>
       </div>
 
       {loading ? (
@@ -54,12 +55,12 @@ export default function CampaignsPage() {
           <div style={{ fontSize: 14, marginBottom: 24, color: 'var(--text-muted)' }}>
             Create your first campaign to start sending outreach emails
           </div>
-          <a href="/campaigns/new" className="btn btn-primary"><Plus size={15} /> Create Campaign</a>
+          <Link href="/campaigns/new" className="btn btn-primary"><Plus size={15} /> Create Campaign</Link>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {campaigns.map((c) => (
-            <a
+            <Link
               key={c.id}
               href={`/campaigns/${c.id}`}
               className="card card-hover"
@@ -100,7 +101,7 @@ export default function CampaignsPage() {
                   ))}
                 </div>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       )}

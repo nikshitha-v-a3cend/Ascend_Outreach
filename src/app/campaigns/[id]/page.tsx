@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { ArrowLeft, Play, Pause, Square, Send, RefreshCw, Upload, UserPlus, Trash2, Users } from 'lucide-react'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { StartCampaignModal } from '@/components/campaigns/StartCampaignModal'
@@ -61,7 +62,7 @@ export default function CampaignDetailPage() {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [actionLoading, setActionLoading] = useState('')
 
-  const load = () => {
+  const load = useCallback(() => {
     Promise.all([
       fetch(`/api/campaigns/${id}`).then((r) => r.json()),
       fetch(`/api/campaigns/${id}/contacts?limit=200`).then((r) => r.json()),
@@ -73,9 +74,9 @@ export default function CampaignDetailPage() {
       setStats(campData.stats)
       setContacts(contactsData.contacts ?? [])
     }).finally(() => setLoading(false))
-  }
+  }, [id])
 
-  useEffect(() => { load() }, [id])
+  useEffect(() => { load() }, [load])
 
   const [runningFollowups, setRunningFollowups] = useState(false)
   const [cronFeedback, setCronFeedback] = useState<string | null>(null)
@@ -160,7 +161,7 @@ export default function CampaignDetailPage() {
       {/* Header */}
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <a href="/campaigns" className="btn btn-secondary btn-sm" id="back-btn"><ArrowLeft size={14} /></a>
+          <Link href="/campaigns" className="btn btn-secondary btn-sm" id="back-btn"><ArrowLeft size={14} /></Link>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
               <h1 className="page-title" style={{ margin: 0 }}>{campaign.name}</h1>

@@ -1,7 +1,14 @@
 // src/lib/supabase/database.types.ts
-// Minimal database type definitions for Supabase JS v2
+// Database type definitions for Supabase JS v2
 // These match the schema in supabase/migrations/001_initial_schema.sql
-// Generated types would normally come from: npx supabase gen types typescript
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export interface Database {
   public: {
@@ -39,6 +46,7 @@ export interface Database {
           source?: string | null
           updated_at?: string
         }
+        Relationships: []
       }
       campaigns: {
         Row: {
@@ -82,6 +90,7 @@ export interface Database {
           follow_up_delay_minutes?: number
           updated_at?: string
         }
+        Relationships: []
       }
       campaign_contacts: {
         Row: {
@@ -140,6 +149,22 @@ export interface Database {
           stopped?: boolean
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_contacts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_contacts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       email_messages: {
         Row: {
@@ -177,6 +202,29 @@ export interface Database {
           status?: string
           sent_at?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "email_messages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_messages_campaign_contact_id_fkey"
+            columns: ["campaign_contact_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_contacts"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       email_events: {
         Row: {
@@ -211,6 +259,29 @@ export interface Database {
           event_timestamp?: string | null
           raw_event?: Record<string, unknown> | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "email_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_events_email_message_id_fkey"
+            columns: ["email_message_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       replies: {
         Row: {
@@ -254,6 +325,22 @@ export interface Database {
           received_at?: string
           raw_payload?: Record<string, unknown> | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "replies_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replies_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       campaign_logs: {
         Row: {
@@ -282,10 +369,27 @@ export interface Database {
           message?: string
           metadata?: Record<string, unknown> | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_logs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_logs_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
     Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }
