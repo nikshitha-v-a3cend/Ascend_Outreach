@@ -79,7 +79,23 @@ export default function CampaignDetailPage() {
   useEffect(() => { load() }, [load])
 
   const [runningFollowups, setRunningFollowups] = useState(false)
+  const [syncingSendgrid, setSyncingSendgrid] = useState(false)
   const [cronFeedback, setCronFeedback] = useState<string | null>(null)
+
+  const handleSyncSendgrid = async () => {
+    setSyncingSendgrid(true)
+    setCronFeedback(null)
+    try {
+      const res = await fetch(`/api/campaigns/${id}/sync-sendgrid`, { method: 'POST' })
+      const data = await res.json() as { message?: string; error?: string }
+      setCronFeedback(data.message || data.error || 'SendGrid sync complete.')
+      load()
+    } catch {
+      setCronFeedback('Failed to sync with SendGrid.')
+    } finally {
+      setSyncingSendgrid(false)
+    }
+  }
 
   const handleProcessFollowups = async () => {
     setRunningFollowups(true)
@@ -211,6 +227,15 @@ export default function CampaignDetailPage() {
               <Send size={14} /> {runningFollowups ? 'Processing...' : 'Run Follow-ups Now'}
             </button>
           )}
+          <button
+            id="sync-sendgrid-btn"
+            className="btn btn-secondary"
+            onClick={handleSyncSendgrid}
+            disabled={syncingSendgrid}
+            title="Pull latest verified opens directly from SendGrid Activity API"
+          >
+            <RefreshCw size={14} /> {syncingSendgrid ? 'Syncing SendGrid...' : 'Sync SendGrid Opens'}
+          </button>
           <button className="btn btn-secondary" onClick={load} id="refresh-btn">
             <RefreshCw size={14} /> Refresh
           </button>
