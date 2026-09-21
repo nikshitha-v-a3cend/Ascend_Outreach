@@ -108,7 +108,7 @@ export default function ContactsPage() {
   )
 
   // ── Manual add contact form state ──────────────────────────────────────────
-  const emptyForm = { first_name: '', last_name: '', email: '', company: '', designation: '' }
+  const emptyForm = { first_name: '', last_name: '', email: '', company: '', designation: '', linkedin_url: '', company_domain: '' }
   const [form, setForm] = useState(emptyForm)
   const [formErrors, setFormErrors] = useState<Partial<typeof emptyForm>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -140,6 +140,8 @@ export default function ContactsPage() {
             email: form.email.trim().toLowerCase(),
             company: form.company.trim() || undefined,
             designation: form.designation.trim() || undefined,
+            linkedin_url: form.linkedin_url.trim() || undefined,
+            company_domain: form.company_domain.trim() || undefined,
             source: 'manual',
           }],
         }),
@@ -292,30 +294,57 @@ export default function ContactsPage() {
               )}
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label className="form-label" htmlFor="add-company">Company</label>
-              <input
-                id="add-company"
-                className="form-input"
-                placeholder="e.g. Infosys, TCS, a Startup..."
-                value={form.company}
-                onChange={(e) => setForm(f => ({ ...f, company: e.target.value }))}
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 6 }}>
+              <div>
+                <label className="form-label" htmlFor="add-company">Company</label>
+                <input
+                  id="add-company"
+                  className="form-input"
+                  placeholder="e.g. Infosys, TCS, a Startup..."
+                  value={form.company}
+                  onChange={(e) => setForm(f => ({ ...f, company: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="add-designation">Designation / Job Title</label>
+                <input
+                  id="add-designation"
+                  className="form-input"
+                  placeholder="e.g. VP Engineering, CTO, Head of L&D..."
+                  value={form.designation}
+                  onChange={(e) => setForm(f => ({ ...f, designation: e.target.value }))}
+                />
+              </div>
             </div>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 16, display: 'block' }}>
+              The more specific the title, the better the AI personalization.
+            </span>
 
-            <div style={{ marginBottom: 24 }}>
-              <label className="form-label" htmlFor="add-designation">Designation / Job Title</label>
-              <input
-                id="add-designation"
-                className="form-input"
-                placeholder="e.g. VP Engineering, CTO, Head of L&D..."
-                value={form.designation}
-                onChange={(e) => setForm(f => ({ ...f, designation: e.target.value }))}
-              />
-              <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                The more specific the title, the better the AI personalization.
-              </span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 6 }}>
+              <div>
+                <label className="form-label" htmlFor="add-linkedin-url">LinkedIn Profile URL</label>
+                <input
+                  id="add-linkedin-url"
+                  className="form-input"
+                  placeholder="e.g. linkedin.com/in/priya-sharma"
+                  value={form.linkedin_url}
+                  onChange={(e) => setForm(f => ({ ...f, linkedin_url: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="add-company-domain">Company Domain</label>
+                <input
+                  id="add-company-domain"
+                  className="form-input"
+                  placeholder="e.g. infosys.com"
+                  value={form.company_domain}
+                  onChange={(e) => setForm(f => ({ ...f, company_domain: e.target.value }))}
+                />
+              </div>
             </div>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 24, display: 'block' }}>
+              Anchors AI research to the real LinkedIn profile and company website instead of guessing.
+            </span>
 
             <div style={{ display: 'flex', gap: 10 }}>
               <button
@@ -382,6 +411,7 @@ export default function ContactsPage() {
                 )}
               </div>
             ) : (
+              <div style={{ overflowX: 'auto' }}>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -529,6 +559,7 @@ export default function ContactsPage() {
                   })}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         </>
