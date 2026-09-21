@@ -16,6 +16,7 @@ import {
   Eye,
 } from 'lucide-react'
 import type { Contact, ApifyEnrichmentData } from '@/lib/supabase/types'
+import { getErrorMessage } from '@/lib/supabase/retry'
 
 interface ApifyEnrichmentModalProps {
   contact: Contact
@@ -70,7 +71,7 @@ export function ApifyEnrichmentModal({
         onEnriched(data.contact)
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred during Apify enrichment')
+      setError(getErrorMessage(err) || 'An error occurred during Apify enrichment')
     } finally {
       setLoading(false)
     }
@@ -100,7 +101,7 @@ export function ApifyEnrichmentModal({
       setHighlights(data.personalization_highlights || [])
       setActiveTab('email')
     } catch (err: any) {
-      setError(err.message || 'Failed to generate AI email')
+      setError(getErrorMessage(err) || 'Failed to generate AI email')
     } finally {
       setGeneratingEmail(false)
     }
@@ -126,7 +127,7 @@ export function ApifyEnrichmentModal({
 
       setSuccessMessage(`Email successfully dispatched via SendGrid to ${contact.email}!`)
     } catch (err: any) {
-      setError(err.message || 'Failed to send email')
+      setError(getErrorMessage(err) || 'Failed to send email')
     } finally {
       setSendingEmail(false)
     }

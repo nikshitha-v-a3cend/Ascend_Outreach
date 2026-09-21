@@ -7,6 +7,7 @@ import { enrichContactWithApify } from '@/lib/apify/enrichment'
 import { generatePersonalizedEmail } from '@/lib/ai/service'
 import { sendEmail } from '@/lib/sendgrid/client'
 import { safeAiProfile } from '@/lib/ai/profile'
+import { getErrorMessage } from '@/lib/supabase/retry'
 import type { Contact } from '@/lib/supabase/types'
 
 export async function POST(
@@ -47,7 +48,14 @@ export async function POST(
 
     // 3. Generate Apify-Tailored AI Email
     const fromName = body.fromName || process.env.NEXT_PUBLIC_SENDGRID_FROM_NAME || 'A3CEND'
-    const fromEmail = body.fromEmail || process.env.NEXT_PUBLIC_SENDGRID_FROM_EMAIL || 'nikshitha.v@a3cend.com'
+    const fromEmail = body.fromEmail || process.env.NEXT_PUBLIC_SENDGRID_FROM_EMAIL || process.env.SENDGRID_FROM_EMAIL
+
+    if (!fromEmail) {
+      return NextResponse.json(
+        { error: 'No sender email configured — set SENDGRID_FROM_EMAIL or pass fromEmail in the request.' },
+        { status: 400 }
+      )
+    }
 
     const generatedEmail = await generatePersonalizedEmail({
       contact,
@@ -131,10 +139,10 @@ export async function POST(
       body_html: generatedEmail.body_html,
       recipient_analysis: generatedEmail.recipient_analysis,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in send-apify-email route:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to send Apify email' },
+      { error: getErrorMessage(error) || 'Failed to send Apify email' },
       { status: 500 }
     )
   }

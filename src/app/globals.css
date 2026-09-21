@@ -54,6 +54,12 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
+  /* Defensive guard: a flex row that refuses to shrink (missing min-width:
+     0 on a flex child is the classic cause) should wrap or clip, never
+     push the whole page into horizontal scroll. Any single overflowing
+     element should be fixed at its source, but this keeps a future one
+     from taking the whole page down with it. */
+  overflow-x: hidden;
 }
 
 body {
@@ -95,6 +101,14 @@ body {
 
 .app-main {
   margin-left: var(--sidebar-width);
+  /* .app-sidebar is position:fixed — removed from normal flow — so
+     .app-layout's flex algorithm never actually "sees" it taking up space.
+     flex: 1 alone stretches .app-main to 100% of the viewport, and the
+     margin-left above then pushes that already-full-width box further
+     right, extending its right edge that same amount past the viewport
+     on every page. An explicit width (not just flex-grow) is required so
+     the margin is space actually reserved, not added on top. */
+  width: calc(100% - var(--sidebar-width));
   flex: 1;
   min-height: 100vh;
   display: flex;
@@ -173,6 +187,23 @@ body {
   font-size: 12px;
   color: var(--text-muted);
   font-weight: 500;
+}
+
+/* Compact density modifiers — additive classes so pages that want a tighter
+   layout (less scrolling to reach content below the fold) can opt in
+   without changing .stat-card/.card everywhere else they're used. */
+.stat-card-compact {
+  padding: 10px 14px;
+}
+.stat-card-compact .stat-value {
+  font-size: 19px;
+  margin-bottom: 1px;
+}
+.stat-card-compact .stat-label {
+  font-size: 10.5px;
+}
+.card-compact {
+  padding: 14px;
 }
 
 /* Badges */
@@ -626,7 +657,7 @@ nextjs-portal,
 /* Responsive */
 @media (max-width: 768px) {
   .app-sidebar { width: 0; overflow: hidden; }
-  .app-main { margin-left: 0; }
+  .app-main { margin-left: 0; width: 100%; }
   .app-content { padding: 16px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }

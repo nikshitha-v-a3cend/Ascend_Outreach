@@ -17,15 +17,24 @@ const RETRYABLE_PATTERNS = [
   /network/i,
 ]
 
+// Supabase/Postgrest errors are plain objects ({message, details, hint,
+// code}) — NOT `instanceof Error` — so `error instanceof Error ? ... :
+// String(error)` skips right past the real `.message` and stringifies the
+// whole object instead, producing the literal text "[object Object]" any
+// time a real Supabase API error (not a network exception) occurs. Always
+// check for a `.message` property before falling back to String().
+export function getErrorMessage(error: unknown): string {
+  if (!error) return 'Unknown error'
+  if (error instanceof Error) return error.message
+  if (typeof (error as { message?: unknown })?.message === 'string') {
+    return (error as { message: string }).message
+  }
+  return String(error)
+}
+
 function isRetryable(error: unknown): boolean {
   if (!error) return false
-  const message =
-    error instanceof Error
-      ? error.message
-      : typeof (error as { message?: unknown })?.message === 'string'
-        ? (error as { message: string }).message
-        : String(error)
-  return RETRYABLE_PATTERNS.some((pattern) => pattern.test(message))
+  return RETRYABLE_PATTERNS.some((pattern) => pattern.test(getErrorMessage(error)))
 }
 
 export async function withSupabaseRetry<T>(
@@ -40,8 +49,7 @@ export async function withSupabaseRetry<T>(
     result = await fn()
     if (!result.error || !isRetryable(result.error) || attempt >= retries) return result
 
-    const message = result.error instanceof Error ? result.error.message : String(result.error)
-    console.warn(`[Supabase Retry] Transient error, retrying (${attempt + 1}/${retries}): ${message}`)
+    console.warn(`[Supabase Retry] Transient error, retrying (${attempt + 1}/${retries}): ${getErrorMessage(result.error)}`)
     await new Promise((resolve) => setTimeout(resolve, delayMs * (attempt + 1)))
   }
 }

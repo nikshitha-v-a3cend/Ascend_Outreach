@@ -189,10 +189,31 @@ export async function searchCompanyAbout(
 
   // Run the web search and (when we know the domain) fetch the real
   // homepage content in parallel — the homepage gives far richer, more
-  // accurate context than a ~150-char Google snippet ever can.
+  // accurate context than a ~150-char Google snippet ever can, and doesn't
+  // depend on the search actor returning anything for this exact query.
+  //
+  // Most contacts don't have company_domain explicitly set, so also try a
+  // guessed domain (company name -> name.com) as a best-effort fallback —
+  // it's right often enough (e.g. "A3CEND" -> a3cend.com) to be worth
+  // trying. Guard against a wrong guess resolving to an unrelated site by
+  // only trusting the fetch if the page actually mentions the company.
+  const guessedDomain = !cleanDomain
+    ? cleanCompany.toLowerCase().replace(/[^a-z0-9]/g, '') + '.com'
+    : null
+
   const [searchResults, siteContent] = await Promise.all([
     runApifySearch(searchQuery, 5),
-    cleanDomain ? fetchCompanyWebsiteText(cleanDomain) : Promise.resolve(null),
+    cleanDomain
+      ? fetchCompanyWebsiteText(cleanDomain)
+      : guessedDomain
+        ? fetchCompanyWebsiteText(guessedDomain).then((result) => {
+            const firstWord = cleanCompany.toLowerCase().split(/\s+/)[0]
+            if (result && firstWord && !result.text.toLowerCase().includes(firstWord)) {
+              return null // guessed domain almost certainly resolved to an unrelated site
+            }
+            return result
+          })
+        : Promise.resolve(null),
   ])
 
   const sources = Array.from(

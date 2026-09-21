@@ -1,6 +1,7 @@
 // src/app/api/contacts/[id]/enrich-apify/route.ts
 import { NextResponse } from 'next/server'
 import { enrichContactWithApify } from '@/lib/apify/enrichment'
+import { getErrorMessage } from '@/lib/supabase/retry'
 
 export async function POST(
   _request: Request,
@@ -23,10 +24,10 @@ export async function POST(
       contact: result.contact,
       apifyData: result.apifyData,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in Apify enrichment route:', error)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: getErrorMessage(error) || 'Internal server error' },
       { status: 500 }
     )
   }

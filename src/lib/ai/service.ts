@@ -2,6 +2,7 @@
 // Central AI business logic service for A3CEND Outreach
 
 import { generateStructuredJson } from './openai'
+import { getA3cendLivePositioning } from './a3cendKnowledge'
 import type {
   ContactClassificationInput,
   ContactClassificationOutput,
@@ -45,11 +46,30 @@ HOW TO TALK ABOUT IT:
 - We are reaching out to leaders at [Company] regarding their company's teams, while naturally asking if their group or the capability/training team at [Company] handles this.
 `
 
+/**
+ * Combines the static behavioral instructions above (how to match a
+ * scenario to a role, tone, jargon rules) with A3CEND's actual current
+ * marketing copy fetched live from a3cend.com. The live content is the
+ * authoritative source of fact — it's what A3CEND is telling the market
+ * about itself right now — so it's presented as the thing to trust over
+ * the static block if they ever conflict, rather than a hardcoded
+ * snapshot the AI has to keep being manually corrected against.
+ */
+async function buildOfferingContext(): Promise<string> {
+  const livePositioning = await getA3cendLivePositioning()
+  if (!livePositioning) return A3CEND_OFFERING_OVERVIEW
+
+  return `${A3CEND_OFFERING_OVERVIEW}
+
+LIVE CONTENT FROM A3CEND'S OWN WEBSITE (fetched just now — this is what A3CEND is actually telling the market today; treat this as the authoritative source of fact, more current than anything above, and prefer its exact product names/phrasing if the two ever disagree):
+${livePositioning}`
+}
+
 export async function classifyContact(
   input: ContactClassificationInput
 ): Promise<ContactClassificationOutput> {
   const systemPrompt = `You are an expert enterprise persona classification agent for A3CEND.
-${A3CEND_OFFERING_OVERVIEW}
+${await buildOfferingContext()}
 
 Carefully analyze the contact details:
 - Check if the title or department is Technical/Engineering (e.g. "Technology", "Software", "CTO", "Engineer", "Architect", "Developer", "IT").
@@ -93,7 +113,7 @@ export async function decideNextAction(
   context: DecisionContext
 ): Promise<DecisionOutput> {
   const systemPrompt = `You are the AI Decision Engine for A3CEND Outreach sequences.
-${A3CEND_OFFERING_OVERVIEW}
+${await buildOfferingContext()}
 
 Examine the recipient's profile, full email history, engagement metrics, replies, and decide the NEXT BEST ACTION dynamically.
 Make sure the strategy and angle match their true functional department (Technical vs Sales vs Executive vs Operations).
@@ -212,7 +232,7 @@ export function buildA3CENDSignature(
   senderTitle?: string
 ): string {
   const name = resolveSenderName(senderName, senderEmail)
-  const email = senderEmail || 'nikshitha.v@a3cend.com'
+  const email = senderEmail || process.env.SENDGRID_FROM_EMAIL || ''
   const title = senderTitle || 'Enterprise Solutions & Capability Lead'
 
   return `<table cellpadding="0" cellspacing="0" border="0" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
@@ -252,10 +272,10 @@ export async function generatePersonalizedEmail(
   }
 ): Promise<GeneratedEmailOutput> {
   const resolvedSender = resolveSenderName(context.campaign.from_name, context.campaign.from_email)
-  const resolvedEmail = context.campaign.from_email || 'nikshitha.v@a3cend.com'
+  const resolvedEmail = context.campaign.from_email || process.env.SENDGRID_FROM_EMAIL || ''
 
   const systemPrompt = `You are an autonomous, intelligent B2B outreach engine for A3CEND (headquartered at T-Hub, Hyderabad).
-A3CEND helps companies prepare their client-facing and commercial teams by letting them do mock client practice with an AI that acts like the customer.
+${await buildOfferingContext()}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DYNAMIC REASONING ENGINE (ROLE + COMPANY AWARE)

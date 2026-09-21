@@ -316,7 +316,7 @@ function safeFormatDistance(dateStr?: string | null): string {
   return (
     <div>
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header" style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Link href="/campaigns" className="btn btn-secondary btn-sm" id="back-btn"><ArrowLeft size={14} /></Link>
           <div>
@@ -327,7 +327,7 @@ function safeFormatDistance(dateStr?: string | null): string {
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', minWidth: 0, maxWidth: '100%' }}>
           {['draft', 'paused'].includes(campaign.status) && (
             <button
               id="start-campaign-btn"
@@ -418,43 +418,43 @@ function safeFormatDistance(dateStr?: string | null): string {
       </div>
 
       {cronFeedback && (
-        <div className="alert alert-info" style={{ marginBottom: 20 }}>
+        <div className="alert alert-info" style={{ marginBottom: 12 }}>
           {cronFeedback}
         </div>
       )}
 
       {/* Stats bar */}
       {stats && (
-        <div className="stats-grid" style={{ marginBottom: 24 }}>
-          <div className="stat-card" style={{ '--accent-color': 'var(--brand-primary)' } as React.CSSProperties}>
+        <div className="stats-grid" style={{ marginBottom: 14, gap: 10 }}>
+          <div className="stat-card stat-card-compact" style={{ '--accent-color': 'var(--brand-primary)' } as React.CSSProperties}>
             <div className="stat-value" style={{ color: 'var(--brand-primary)' }}>{stats.total}</div>
             <div className="stat-label">Total Contacts</div>
           </div>
-          <div className="stat-card" style={{ '--accent-color': '#64748b' } as React.CSSProperties}>
+          <div className="stat-card stat-card-compact" style={{ '--accent-color': '#64748b' } as React.CSSProperties}>
             <div className="stat-value">{stats.queued}</div>
             <div className="stat-label">Queued</div>
           </div>
-          <div className="stat-card" style={{ '--accent-color': 'var(--color-info)' } as React.CSSProperties}>
+          <div className="stat-card stat-card-compact" style={{ '--accent-color': 'var(--color-info)' } as React.CSSProperties}>
             <div className="stat-value" style={{ color: 'var(--color-info)' }}>{stats.sent}</div>
             <div className="stat-label">Email #1 Sent</div>
           </div>
-          <div className="stat-card" style={{ '--accent-color': 'var(--brand-secondary)' } as React.CSSProperties}>
+          <div className="stat-card stat-card-compact" style={{ '--accent-color': 'var(--brand-secondary)' } as React.CSSProperties}>
             <div className="stat-value" style={{ color: 'var(--brand-secondary)' }}>{stats.opened}</div>
             <div className="stat-label">Opened</div>
           </div>
-          <div className="stat-card" style={{ '--accent-color': 'var(--brand-coral)' } as React.CSSProperties}>
+          <div className="stat-card stat-card-compact" style={{ '--accent-color': 'var(--brand-coral)' } as React.CSSProperties}>
             <div className="stat-value" style={{ color: 'var(--brand-coral)' }}>{stats.replied}</div>
             <div className="stat-label">Replied</div>
           </div>
-          <div className="stat-card" style={{ '--accent-color': 'var(--brand-cyan)' } as React.CSSProperties}>
+          <div className="stat-card stat-card-compact" style={{ '--accent-color': 'var(--brand-cyan)' } as React.CSSProperties}>
             <div className="stat-value" style={{ color: 'var(--brand-cyan)' }}>{stats.follow_up_sent}</div>
             <div className="stat-label">Follow-up Sent</div>
           </div>
-          <div className="stat-card" style={{ '--accent-color': 'var(--color-error)' } as React.CSSProperties}>
+          <div className="stat-card stat-card-compact" style={{ '--accent-color': 'var(--color-error)' } as React.CSSProperties}>
             <div className="stat-value" style={{ color: 'var(--color-error)' }}>{stats.bounced}</div>
             <div className="stat-label">Bounced</div>
           </div>
-          <div className="stat-card" style={{ '--accent-color': 'var(--color-warning)' } as React.CSSProperties}>
+          <div className="stat-card stat-card-compact" style={{ '--accent-color': 'var(--color-warning)' } as React.CSSProperties}>
             <div className="stat-value" style={{ color: 'var(--color-warning)' }}>{stats.unsubscribed}</div>
             <div className="stat-label">Unsubscribed</div>
           </div>
@@ -462,11 +462,11 @@ function safeFormatDistance(dateStr?: string | null): string {
       )}
 
       {/* Config & Test Send side-by-side */}
-      <div className="grid-2" style={{ marginBottom: 24 }}>
+      <div className="grid-2" style={{ marginBottom: 14, gap: 12 }}>
         {/* Sequence config summary */}
-        <div className="card">
-          <h3 style={{ fontWeight: 600, fontSize: 14, marginBottom: 16 }}>Configuration</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 13 }}>
+        <div className="card card-compact">
+          <h3 style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Configuration</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--text-muted)' }}>Initial Template</span>
               <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{campaign.initial_template_id || '—'}</span>
@@ -487,12 +487,12 @@ function safeFormatDistance(dateStr?: string | null): string {
         </div>
 
         {/* Send test email */}
-        <div className="card">
-          <h3 style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>Send Test Email</h3>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+        <div className="card card-compact">
+          <h3 style={{ fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Send Test Email</h3>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
             Verify your initial outreach template before starting the campaign.
           </p>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
             <input
               id="test-email-input"
               className="form-input"

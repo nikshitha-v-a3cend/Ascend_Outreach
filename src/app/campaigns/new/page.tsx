@@ -26,8 +26,8 @@ export default function NewCampaignPage() {
   const [availableContacts, setAvailableContacts] = useState<Array<{ id: string; first_name: string; email: string }>>([])
   const [form, setForm] = useState({
     name: 'A3CEND Outreach Sequence',
-    from_name: process.env.NEXT_PUBLIC_SENDGRID_FROM_NAME ?? 'Nikshitha V',
-    from_email: process.env.NEXT_PUBLIC_SENDGRID_FROM_EMAIL ?? 'nikshitha.v@a3cend.com',
+    from_name: process.env.NEXT_PUBLIC_SENDGRID_FROM_NAME ?? '',
+    from_email: process.env.NEXT_PUBLIC_SENDGRID_FROM_EMAIL ?? '',
     from_title: 'Enterprise Solutions & Growth',
     initial_template_id: process.env.NEXT_PUBLIC_INITIAL_TEMPLATE_ID ?? 'd-99cb8ad040a146cbb7b83277df6014fd',
     no_open_template_id: process.env.NEXT_PUBLIC_NO_OPEN_TEMPLATE_ID ?? 'd-35192641bf8a4ddc9933d1f191dc6cf1',

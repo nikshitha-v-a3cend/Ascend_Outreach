@@ -2,7 +2,7 @@
 // Service module to orchestrate Apify web search enrichment for Supabase contacts
 
 import { getServerSupabase } from '@/lib/supabase/server'
-import { withSupabaseRetry } from '@/lib/supabase/retry'
+import { withSupabaseRetry, getErrorMessage } from '@/lib/supabase/retry'
 import { performFullApifyEnrichment, CombinedApifyEnrichment } from './client'
 import { safeAiProfile, mergeAiProfile } from '@/lib/ai/profile'
 import type { Contact } from '@/lib/supabase/types'
@@ -25,8 +25,7 @@ export async function enrichContactWithApify(contactId: string): Promise<{
   )
 
   if (fetchError || !contact) {
-    const message = fetchError instanceof Error ? fetchError.message : String(fetchError)
-    return { success: false, error: fetchError ? message : 'Contact not found' }
+    return { success: false, error: fetchError ? getErrorMessage(fetchError) : 'Contact not found' }
   }
 
   try {
@@ -67,7 +66,7 @@ export async function enrichContactWithApify(contactId: string): Promise<{
     )
 
     if (updateError) {
-      const message = updateError instanceof Error ? updateError.message : String(updateError)
+      const message = getErrorMessage(updateError)
       console.error(`[Apify DB Update Error] ${message}`)
       return { success: false, error: message }
     }
@@ -81,9 +80,9 @@ export async function enrichContactWithApify(contactId: string): Promise<{
       contact: { ...(updatedContact as unknown as Contact), ai_profile: updatedAiProfile as any },
       apifyData,
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`[Apify Enrichment Error] Contact ID ${contactId}:`, error)
-    return { success: false, error: error.message || 'Apify enrichment failed' }
+    return { success: false, error: getErrorMessage(error) || 'Apify enrichment failed' }
   }
 }
 
