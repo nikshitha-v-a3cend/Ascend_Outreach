@@ -38,10 +38,10 @@ export function Sidebar() {
             justifyContent: 'flex-start',
           }}>
             <Image
-              src="/a3cend-logo.png"
+              src="/logo-cropped.png"
               alt="A3CEND"
-              width={112}
-              height={32}
+              width={478}
+              height={120}
               priority
               style={{ height: 32, width: 'auto', display: 'block', objectFit: 'contain' }}
             />

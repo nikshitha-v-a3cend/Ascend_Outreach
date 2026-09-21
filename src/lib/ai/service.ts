@@ -22,17 +22,27 @@ const A3CEND_LOGO_URL =
   'https://raw.githubusercontent.com/nikshitha-v-a3cend/Ascend_Outreach/4164c2d/public/a3cend-logo.png'
 
 const A3CEND_OFFERING_OVERVIEW = `
-A3CEND (headquartered at T-Hub, Hyderabad) helps enterprise companies (like IT services firms, GCCs, and tech enterprises) prepare their teams for real client and customer conversations.
+A3CEND (headquartered at T-Hub, Hyderabad) — tagline: "Human Capability Is Built in Practice." A specialist enterprise development company that blends human-led leadership development expertise with REHEARSE, its AI-powered practice platform. This is the real, currently-marketed product — not an internal engineering prototype, and not a "coding problems" tool. Named industry verticals A3CEND explicitly serves: Pharma, GCC (Global Capability Centers), Tech/IT services, Manufacturing — this outreach's actual audience.
 
-WHAT WE ACTUALLY DO (PLAIN ENGLISH):
-- Instead of putting team members on real client calls unprepared, or having senior managers spend hours doing manual mock roleplays:
-- We provide an AI that acts like a real client or buyer.
-- Team members (delivery leads, technical consultants, sales reps, project managers) can do mock client calls with the AI, practice handling difficult questions or pushback, and get instant feedback before speaking with real clients.
+WHAT REHEARSE ACTUALLY IS (from A3CEND's own site, use this framing): "From leadership and managerial conversations to sales discussions and stakeholder interactions, REHEARSE strengthens behavioral and interpersonal skills needed to think, decide, communicate, and respond effectively in the moment." A learner has a real-time voice/video conversation with an AI persona that pushes back realistically, then gets structured feedback. It sits alongside A3CEND's human-led structured leadership programs (for first-time managers, emerging leaders, and executives) and change-management/transformation programs — REHEARSE is how the practice gets scaled, not a replacement for the human expertise behind it.
+
+REAL SCENARIO EXAMPLES (drawn from A3CEND's own case material — use as a model for the KIND of specific, concrete scenario to reference, adapted to the actual contact, not copied verbatim):
+- A GCC manager aligning offshore and onshore stakeholders with competing priorities.
+- A newly promoted people manager handling their first difficult feedback conversation.
+- A sales lead communicating a price increase to a client while retaining their commitment.
+- A commercial/analytics leader presenting data-driven insights to a skeptical leadership team.
+- A project/delivery lead navigating a heated prioritization meeting with multiple functional heads.
+
+CRITICAL — MATCH THE SCENARIO TO THE ROLE, DON'T DEFAULT EVERYONE TO "CLIENT CONVERSATIONS":
+- Sales / client-facing roles: buyer objections, pricing conversations, negotiation, retaining commitment under pressure.
+- Technical / engineering / delivery / GCC roles: cross-functional stakeholder alignment (offshore/onshore, product/engineering, competing priorities), defending scope or timelines, prioritization conflicts — NOT client conversations, and NOT "coding practice" (that is not what this product does).
+- Managers / people leaders: difficult feedback conversations, first-time management moments, team accountability.
+- Executives: presenting to skeptical leadership, driving organizational change, executive presence — company-wide by nature.
 
 HOW TO TALK ABOUT IT:
 - NEVER use confusing tech jargon like "simulation platform", "AI sandbox", or "behavioral benchmarks". Real business people do not know what that means.
-- Say it simply: "mock client calls with an AI that acts like the client", "practicing tough client conversations before going live", or "helping teams get ready for client-facing meetings".
-- We are reaching out to leaders at [Company] regarding their company's client-facing teams, while naturally asking if their group or the capability/training team at [Company] handles this.
+- Say it simply: "rehearsing a tough conversation out loud against an AI that pushes back like the real person would," "practicing before the conversation that actually matters," "building real confidence before you're in the room."
+- We are reaching out to leaders at [Company] regarding their company's teams, while naturally asking if their group or the capability/training team at [Company] handles this.
 `
 
 export async function classifyContact(
@@ -258,32 +268,33 @@ Nothing is static. You must dynamically examine who this person is and what thei
    - Naturally ground your message in their company's actual operating reality.
 
 2. THE PITCH IS ABOUT THE COMPANY, THEIR ROLE IS JUST CONTEXT:
-   The PRIMARY subject of the email is always A3CEND's company-wide offering — helping [Company]'s client-facing teams broadly (sales, delivery, technical, support) get ready for real client conversations through mock practice with an AI that acts like the customer. Do NOT open the email with "their team's problem" as the subject (e.g. do NOT lead with "Preparing your sales team for..." or "Getting your engineering team comfortable with..." as the first sentence) — that makes their department the subject of the email, which is backwards. The company-wide capability is the subject; their role is only used AFTERWARD, briefly, as a personalizing touch — a reason they specifically would notice or care about this, or a single concrete detail relevant to their function. Their role should color a clause or half-sentence, never anchor the opening or dominate the message.
+   The PRIMARY subject of the email is always A3CEND's company-wide offering — helping [Company]'s teams broadly build readiness for their real high-stakes conversations by rehearsing against an AI that plays whoever is on the other side. Do NOT open the email with "their team's problem" as the subject (e.g. do NOT lead with "Preparing your sales team for..." or "Getting your engineering team comfortable with..." as the first sentence) — that makes their department the subject of the email, which is backwards. The company-wide capability is the subject; their role is only used AFTERWARD, briefly, as a personalizing touch — a reason they specifically would notice or care about this, or a single concrete detail relevant to their function. Their role should color a clause or half-sentence, never anchor the opening or dominate the message.
    - IF APIFY WEB INTELLIGENCE IS AVAILABLE (Company About / Person LinkedIn About):
      Naturally connect your opening line or context to 1 specific detail from their scraped LinkedIn background or company's real mission/services. Show authentic awareness of what they and their company do!
 
+   ROLE DETERMINES WHICH KIND OF CONVERSATION IS RELEVANT — DO NOT DEFAULT EVERYONE TO CLIENT/SALES FRAMING:
    • IF THEY ARE IN SALES (Sales Lead, VP Sales, Account Executive, BD):
-     State the company-wide capability first. Weave in their role only as a brief secondary touch — e.g. "...which probably sounds familiar from the buyer objections and pricing pushback your team deals with."
+     This is the SELLIQ use case — client/buyer conversations genuinely are their world. Weave in their role only as a brief secondary touch — e.g. "...which probably sounds familiar from the buyer objections and pricing pushback your team deals with."
 
-   • IF THEY ARE TECHNICAL / ENGINEERING (Tech Lead, Architect, VP Tech, CTO):
-     State the company-wide capability first. Weave in their role only as a brief secondary touch — e.g. "...including the technical pushback your engineers get explaining architecture to non-technical buyers."
+   • IF THEY ARE TECHNICAL / ENGINEERING (Tech Lead, Architect, VP Tech, CTO, or GCC leadership):
+     Their real high-stakes conversations are cross-functional, not client calls and not "coding practice" — aligning offshore/onshore or product/engineering stakeholders with competing priorities, defending scope or timelines, prioritization conflicts with other functional heads. Weave in their role only as a brief secondary touch — e.g. "...which probably sounds familiar from aligning offshore and onshore teams on competing priorities."
 
    • IF THEY ARE A MANAGER / DELIVERY HEAD (Project Manager, Delivery Lead, Practice Head):
-     State the company-wide capability first. Weave in their role only as a brief secondary touch — e.g. "...so it's not just your strongest performers who are client-ready."
+     This is Live Avatar Simulation for leadership conversations — their hardest conversations are usually performance conversations, team accountability, and cross-functional conflict, not client calls. Weave in their role only as a brief secondary touch — e.g. "...so difficult 1:1s and accountability conversations don't fall on just your strongest performers to handle well."
 
    • IF THEY ARE BUSINESS / EXECUTIVE (CEO, Managing Director, BU Head, VP):
-     Already company-wide by nature — state it directly: client-facing confidence and consistency across the whole organization, every team that talks to clients, not a point solution for one group.
+     Already company-wide by nature — state it directly: confidence and consistency in high-stakes conversations across the whole organization — leadership, cross-functional, and client-facing alike — not a point solution for one group.
 
 3. ZERO JARGON — PLAIN HUMAN ENGLISH:
    - FORBIDDEN: "simulation", "AI sandbox", "roleplay engine", "behavioral diagnostics".
-   - Explain what A3CEND does simply: "mock client calls with an AI that acts like the customer", "practicing tricky client meetings before going live", "getting teams ready for client conversations without senior managers having to shadow every call".
+   - Explain what A3CEND does simply: "rehearsing a tough conversation out loud against an AI that pushes back like the real person would," "practicing before the conversation that actually matters," "building real confidence before you're in the room."
 
 4. FULLY DYNAMIC — NO STATIC TEMPLATES OR CANNED OPENERS:
    - STRICTLY FORBIDDEN: Starting with "As a [title/role]..." (e.g. "As a tech leader", "As a sales lead"), "In your role as...", "Given your role...", "With your background in...", "Noticed you're leading...", "Saw that you are...", "Hope this finds you well".
-   - Jump straight to the conversation or real-world client observation, using Apify scraped LinkedIn/Company background if available. Lead with A3CEND's company-wide capability, not with their department's problem:
-     • For tech: "Hi [Name], A3CEND helps client-facing teams at [Company] practice real client conversations with an AI before they're live — including the technical pushback engineers get explaining architecture to non-technical buyers."
-     • For sales: "Hi [Name], A3CEND helps client-facing teams at [Company] get comfortable with tough client conversations through mock practice with an AI — objection handling and pricing pushback included, the stuff your team deals with daily."
-     • For managers: "Hi [Name], A3CEND helps every client-facing team at [Company] get consistently client-ready through mock AI practice — not just the strongest performers, which cuts down how much shadowing senior managers have to do."
+   - Jump straight to the real thing, using Apify scraped LinkedIn/Company background if available. Lead with A3CEND's company-wide capability, not with their department's problem, and match the CONVERSATION TYPE to the role (sales → client/buyer conversations; technical/GCC → cross-functional stakeholder alignment; managers/executives → leadership conversations):
+     • For tech: "Hi [Name], A3CEND helps teams at [Company] rehearse the cross-functional conversations that actually get tense — offshore/onshore alignment, competing priorities, defending scope — before they happen live."
+     • For sales: "Hi [Name], A3CEND helps teams at [Company] get comfortable with tough conversations through AI-powered practice — objection handling and pricing pushback included, the stuff your team deals with daily."
+     • For managers: "Hi [Name], A3CEND helps every team at [Company] get consistently ready for the conversations that are actually hard — performance reviews, accountability, cross-functional conflict — not just the strongest performers handling those well."
    - Every single email must be written from scratch, spontaneously tailored to that exact person, role, and company.
    - Keep it short: 3 to 4 sentences max (under 60 words).
    - NO fake statistics (never say "saved 50 hours", "40% faster").
@@ -295,14 +306,14 @@ Nothing is static. You must dynamically examine who this person is and what thei
      - 1 simple casual question.
    • Step 2 (First Follow-up):
      - 2 to 3 sentences maximum.
-     - Naturally follow up on the previous note without guilt-tripping ("Per my previous email" is FORBIDDEN). Stay company-wide in subject; their role still only colors a clause (e.g. a specific scenario like objection handling or high-stakes client reviews), it doesn't become the sentence's subject.
+     - Naturally follow up on the previous note without guilt-tripping ("Per my previous email" is FORBIDDEN). Stay company-wide in subject; their role still only colors a clause (a role-appropriate detail — objection handling for sales, cross-functional stakeholder alignment for tech/GCC, a performance conversation for a manager), it doesn't become the sentence's subject.
      - Subject: If previous was opened, keep thread continuity with "re: [previous subject]" or a short 2-3 word followup. If not opened, try a fresh lowercase subject.
    • Step 3 (Angle Pivot / Concrete Use Case):
      - 2 to 3 sentences maximum.
-     - Shift angle entirely. For example: if step 1 focused on team readiness, focus step 3 on saving senior leadership hours from having to shadow calls, or how technical architects get comfortable explaining systems to business clients. Whatever the new angle, state it as a company-wide benefit first — their role still only colors it afterward, never becomes the subject.
+     - Shift angle entirely. For example: if step 1 focused on team-wide readiness, pivot step 3 to a different angle for that role — saving senior leadership hours otherwise spent coaching people through hard conversations one-on-one, or for technical/GCC roles, how rehearsing offshore/onshore or cross-functional alignment conversations cuts down escalations. Whatever the new angle, state it as a company-wide benefit first — their role still only colors it afterward, never becomes the subject.
    • Step 4 (Low-Friction Check-in):
      - 1 to 2 short sentences.
-     - Low-pressure check-in: Ask if client readiness or mock practice is a priority this quarter, or if there's someone else on their team who oversees client capability enablement.
+     - Low-pressure check-in: Ask if conversation readiness or mock practice is a priority this quarter, or if there's someone else on their team who oversees capability enablement.
    • Step 5 (Final Graceful Close):
      - 2 short sentences.
      - Acknowledge they are busy, graciously bow out, and leave the door open if priorities align in the future.
@@ -319,12 +330,12 @@ Nothing is static. You must dynamically examine who this person is and what thei
    - Talk like a genuine human colleague having a thoughtful B2B conversation.
 
 6. CASUAL, LOW-PRESSURE QUESTION:
-   - One simple question asking if mock practice or client readiness is something their team is exploring — or something being looked at more broadly across the company's client-facing teams.
+   - One simple question asking if mock practice or conversation readiness is something their team is exploring — or something being looked at more broadly across the company's teams.
    - 2 to 4 word lowercase subject line (or "re: [previous subject]" if continuing a thread).
 
 Required JSON Output Schema:
 {
-  "recipient_analysis": "Your internal assessment: 1) What does their company do? 2) What is their exact role (sales vs tech vs manager vs business)? 3) How Apify web data/LinkedIn background influenced this dynamic angle. 4) Confirm the email's SUBJECT is A3CEND's company-wide capability, not their department's problem — and their role appears only as a brief secondary touch, never as the opening hook or the dominant framing.",
+  "recipient_analysis": "Your internal assessment: 1) What does their company do? 2) What is their exact role (sales vs tech vs manager vs business)? 3) How Apify web data/LinkedIn background influenced this dynamic angle. 4) Confirm the email's SUBJECT is A3CEND's company-wide capability, not their department's problem — role appears only as a brief secondary touch, never the opening hook. 5) Confirm the scenario matches the role — sales got client/buyer conversation framing, technical/GCC got cross-functional stakeholder-alignment framing (NOT client-conversation framing, NOT coding practice — that is not this product), managers/executives got leadership-conversation framing.",
   "subject": "2 to 4 word lowercase subject line, completely tailored and spontaneous",
   "body_text": "Plain text email (3-4 short sentences, under 60 words, NO fake stats, NO 'simulation' jargon). Ends with: Best regards,\\n${resolvedSender}",
   "body_paragraphs_html": "Clean HTML markup using <p> tags for each paragraph. Ends with: <p style=\\"margin-bottom: 20px;\\">Best regards,<br>${resolvedSender}</p>",
