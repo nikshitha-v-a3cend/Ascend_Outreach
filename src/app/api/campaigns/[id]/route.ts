@@ -1,6 +1,27 @@
 // src/app/api/campaigns/[id]/route.ts
 import { NextRequest } from 'next/server'
+import { z } from 'zod'
 import { getServerSupabase } from '@/lib/supabase/server'
+
+// Deliberately excludes `status` and `test_mode` — those change through the
+// dedicated pause/resume/stop/start routes, which apply their own guards
+// (e.g. only pausing an active campaign) and write a campaign_logs entry.
+// Allowing status here would let a caller silently reactivate a stopped
+// campaign, bypassing those checks and resuming contacts that were
+// deliberately halted.
+const UpdateCampaignSchema = z.object({
+  name: z.string().min(1).optional(),
+  from_name: z.string().min(1).optional(),
+  from_email: z.string().email().optional(),
+  from_title: z.string().optional(),
+  initial_template_id: z.string().nullable().optional(),
+  no_open_template_id: z.string().nullable().optional(),
+  opened_no_reply_template_id: z.string().nullable().optional(),
+  follow_up_delay_minutes: z.number().int().min(5).optional(),
+  custom_instructions: z.string().nullable().optional(),
+  messaging_guidelines: z.string().nullable().optional(),
+  target_tone: z.string().nullable().optional(),
+}).strict()
 
 export async function GET(
   _req: NextRequest,
@@ -66,11 +87,19 @@ export async function PATCH(
   const { id } = await params
   try {
     const body = await req.json()
+    const parsed = UpdateCampaignSchema.safeParse(body)
+    if (!parsed.success) {
+      return Response.json(
+        { error: parsed.error.issues[0]?.message ?? 'Validation failed' },
+        { status: 400 }
+      )
+    }
+
     const db = getServerSupabase()
 
     const { data, error } = await db
       .from('campaigns')
-      .update(body)
+      .update(parsed.data)
       .eq('id', id)
       .select()
       .single()

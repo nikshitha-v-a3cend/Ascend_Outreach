@@ -4,6 +4,7 @@
 // All processing is IDEMPOTENT — same event ID never processed twice
 
 import { NextRequest } from 'next/server'
+import crypto from 'crypto'
 import { getServerSupabase } from '@/lib/supabase/server'
 import type { Database } from '@/lib/supabase/database.types'
 
@@ -218,9 +219,40 @@ async function processEvent(db: ReturnType<typeof import('@/lib/supabase/server'
   }
 }
 
+// SendGrid signs each Event Webhook delivery with ECDSA (P-256/SHA-256)
+// over `timestamp + rawBody`. Without this check, anyone who finds this
+// URL can POST fabricated open/click/bounce/unsubscribe events, corrupting
+// campaign stats and engagement-driven AI decisions.
+function verifySendGridSignature(publicKeyBase64: string, payload: string, signatureBase64: string, timestamp: string): boolean {
+  try {
+    const publicKey = crypto.createPublicKey({
+      key: Buffer.from(publicKeyBase64, 'base64'),
+      format: 'der',
+      type: 'spki',
+    })
+    const verifier = crypto.createVerify('SHA256')
+    verifier.update(timestamp + payload)
+    verifier.end()
+    return verifier.verify(publicKey, Buffer.from(signatureBase64, 'base64'))
+  } catch {
+    return false
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const text = await req.text()
+
+    const verificationKey = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY
+    if (verificationKey) {
+      const signature = req.headers.get('x-twilio-email-event-webhook-signature')
+      const timestamp = req.headers.get('x-twilio-email-event-webhook-timestamp')
+      if (!signature || !timestamp || !verifySendGridSignature(verificationKey, text, signature, timestamp)) {
+        console.warn('[Events] Rejected webhook call with missing/invalid signature')
+        return new Response('Invalid signature', { status: 401 })
+      }
+    }
+
     let events: SendGridEvent[]
 
     try {

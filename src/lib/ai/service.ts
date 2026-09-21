@@ -193,7 +193,7 @@ export function resolveSenderName(fromName?: string, fromEmail?: string): string
       return parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ')
     }
   }
-  return fromName || 'Nikshitha V'
+  return fromName || 'The A3CEND Team'
 }
 
 export function buildA3CENDSignature(
@@ -203,7 +203,7 @@ export function buildA3CENDSignature(
 ): string {
   const name = resolveSenderName(senderName, senderEmail)
   const email = senderEmail || 'nikshitha.v@a3cend.com'
-  const title = senderTitle || (name.toLowerCase().includes('sukendu') ? 'Workplace Readiness & Growth Associate.' : 'Enterprise Solutions & Capability Lead')
+  const title = senderTitle || 'Enterprise Solutions & Capability Lead'
 
   return `<table cellpadding="0" cellspacing="0" border="0" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
   <tr>
@@ -333,7 +333,7 @@ Required JSON Output Schema:
   "personalization_highlights": ["Specific detail about the company or LinkedIn profile leveraged"]
 }`
 
-  const apifyIntel = context.contact.ai_profile?.apify_enrichment || (context.contact as any).apify_enrichment
+  const apifyIntel = context.contact.ai_profile?.apify_enrichment
 
   const userPrompt = `Generate personalized email:
 RECIPIENT:

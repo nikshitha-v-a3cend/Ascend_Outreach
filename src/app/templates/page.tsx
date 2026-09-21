@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { Mail, TestTube } from 'lucide-react'
 
 const TEMPLATES = [
-  { key: 'initial_outreach', id: 'd-99cb8ad040a146cbb7b83277df6014fd', label: 'Initial Outreach', description: 'First email sent to contacts when a campaign starts' },
-  { key: 'opened_no_reply', id: 'd-991c648e50bb4c1c848587b89f2fa9f4', label: 'Opened (No Reply)', description: 'Sent when contact opened Email #1 but did not reply after delay period' },
-  { key: 'no_open', id: 'd-35192641bf8a4ddc9933d1f191dc6cf1', label: 'No Open Follow-up', description: 'Sent when contact did not open Email #1 after the delay period' },
+  { key: 'initial_outreach', id: process.env.NEXT_PUBLIC_INITIAL_TEMPLATE_ID ?? 'd-99cb8ad040a146cbb7b83277df6014fd', label: 'Initial Outreach', description: 'First email sent to contacts when a campaign starts' },
+  { key: 'opened_no_reply', id: process.env.NEXT_PUBLIC_OPENED_NO_REPLY_TEMPLATE_ID ?? 'd-991c648e50bb4c1c848587b89f2fa9f4', label: 'Opened (No Reply)', description: 'Sent when contact opened Email #1 but did not reply after delay period' },
+  { key: 'no_open', id: process.env.NEXT_PUBLIC_NO_OPEN_TEMPLATE_ID ?? 'd-35192641bf8a4ddc9933d1f191dc6cf1', label: 'No Open Follow-up', description: 'Sent when contact did not open Email #1 after the delay period' },
 ]
 
 export default function TemplatesPage() {

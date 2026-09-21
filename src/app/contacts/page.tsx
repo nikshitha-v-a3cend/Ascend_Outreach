@@ -397,7 +397,7 @@ export default function ContactsPage() {
                 </thead>
                 <tbody>
                   {filtered.map((c) => {
-                    const hasApify = Boolean(c.ai_profile?.apify_enrichment || (c as any).apify_enrichment)
+                    const hasApify = Boolean(c.ai_profile?.apify_enrichment)
                     return (
                       <tr key={c.id}>
                         <td>

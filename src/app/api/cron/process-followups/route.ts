@@ -42,11 +42,28 @@ import {
 } from '@/lib/ai/safety'
 import type { Contact } from '@/lib/supabase/types'
 
+// The app's own campaign page polls this endpoint every 30s to drive the
+// live "auto-run" UI — that's a same-origin browser request, not a
+// genuinely external caller, so it doesn't need to know CRON_SECRET (which
+// would mean shipping the secret to every browser that loads the page).
+// An external scheduler (real cron, a manual curl) still needs the secret.
+function isSameOriginRequest(req: NextRequest): boolean {
+  const origin = req.headers.get('origin') || req.headers.get('referer')
+  const host = req.headers.get('host')
+  if (!origin || !host) return false
+  try {
+    return new URL(origin).host === host
+  } catch {
+    return false
+  }
+}
+
 export async function POST(req: NextRequest) {
-  // Verify cron secret to prevent unauthorized calls
+  // Verify cron secret to prevent unauthorized calls from outside the app
   const authHeader = req.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  const isAuthorizedExternal = !cronSecret || authHeader === `Bearer ${cronSecret}`
+  if (!isAuthorizedExternal && !isSameOriginRequest(req)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

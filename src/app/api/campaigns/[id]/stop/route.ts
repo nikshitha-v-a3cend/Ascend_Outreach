@@ -15,12 +15,15 @@ export async function POST(
   // Stop campaign and all queued contacts
   await db.from('campaigns').update({ status: 'stopped' }).eq('id', campaignId)
 
-  // Mark all queued/sending contacts as stopped
+  // Mark every contact not already at a terminal status as stopped — this
+  // must cover 'opened'/'no_open'/'follow_up_sent'/'manual_reply_sent' too,
+  // since those are contacts actively awaiting their next automated
+  // follow-up, not just ones still queued to send the first email.
   await db
     .from('campaign_contacts')
     .update({ stopped: true, status: 'stopped' })
     .eq('campaign_id', campaignId)
-    .in('status', ['queued', 'sending', 'sent'])
+    .in('status', ['queued', 'sending', 'sent', 'opened', 'no_open', 'follow_up_sent', 'manual_reply_sent'])
 
   await db.from('campaign_logs').insert({
     campaign_id: campaignId,

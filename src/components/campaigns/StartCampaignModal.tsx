@@ -94,15 +94,15 @@ export function StartCampaignModal({
                 <SummaryRow label="AI Copywriter" value="Enabled (GPT-4o Role & Persona Personalization)" highlight />
                 <SummaryRow label="Emails that will send" value={`${contactCount} initial + up to ${contactCount} follow-ups`} highlight />
                 <SummaryRow label="From" value={`${campaign.from_name} <${campaign.from_email}>`} />
-                <SummaryRow label="Fallback Template" value={campaign.initial_template_id ?? '(not set)'} code />
+                <SummaryRow label="Fallback Template (optional)" value={campaign.initial_template_id ?? 'None — AI copy only'} code />
                 <SummaryRow label="Follow-up Delay" value={delayLabel} highlight />
                 <SummaryRow label="Mode" value={campaign.test_mode ? 'TEST MODE' : 'Production'} />
               </div>
 
               {!campaign.initial_template_id && (
-                <div className="alert alert-error" style={{ marginTop: 16 }}>
+                <div className="alert alert-info" style={{ marginTop: 16 }}>
                   <AlertTriangle size={16} />
-                  Initial template ID is not configured. Set it in campaign settings before starting.
+                  No fallback template configured — every email will rely on AI-generated copy. If AI generation ever fails for a contact, that contact is skipped rather than sent a template email.
                 </div>
               )}
             </>
@@ -118,7 +118,7 @@ export function StartCampaignModal({
               id="confirm-start-campaign-btn"
               className="btn btn-primary"
               onClick={handleConfirm}
-              disabled={loading || !campaign.initial_template_id}
+              disabled={loading}
             >
               {loading ? (
                 <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> Starting...</>

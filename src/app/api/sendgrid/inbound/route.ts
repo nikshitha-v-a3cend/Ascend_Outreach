@@ -23,6 +23,16 @@ function cleanSubject(subject: string): string {
 
 export async function POST(req: NextRequest) {
   try {
+    // SendGrid's Inbound Parse webhook has no built-in request signing (unlike
+    // the Events webhook), so a shared secret in the URL is the standard way
+    // to keep this endpoint from accepting forged replies. Configure it by
+    // setting SENDGRID_INBOUND_SECRET and pointing SendGrid's Inbound Parse
+    // "Destination URL" at .../api/sendgrid/inbound?token=<that value>.
+    const inboundSecret = process.env.SENDGRID_INBOUND_SECRET
+    if (inboundSecret && req.nextUrl.searchParams.get('token') !== inboundSecret) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
     const formData = await req.formData()
 
     const from = (formData.get('from') as string) ?? ''
@@ -40,7 +50,8 @@ export async function POST(req: NextRequest) {
     const db = getServerSupabase()
 
     // 1. If sent by our team member to a prospect, log manual reply and schedule re-engagement
-    if (senderEmail.endsWith('@a3cend.com')) {
+    const teamDomain = (process.env.TEAM_EMAIL_DOMAIN || 'a3cend.com').toLowerCase()
+    if (senderEmail.endsWith(`@${teamDomain}`)) {
       const recipientEmail = extractSenderEmail(to)
       const { data: recipientContact } = await db
         .from('contacts')
@@ -206,9 +217,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Automatically alert the sales team / campaign owner about the new reply
+    const notificationEmail = process.env.SALES_NOTIFICATION_EMAIL
+    if (!notificationEmail) {
+      console.warn('[Inbound] SALES_NOTIFICATION_EMAIL not configured — skipping reply notification email')
+    } else {
     try {
       const { sendEmail } = await import('@/lib/sendgrid/client')
-      const sukenduNotificationEmail = process.env.SALES_NOTIFICATION_EMAIL || 'sukendu.maji@a3cend.com'
       const contactInfo = contact as { first_name?: string; last_name?: string; company?: string; designation?: string; email?: string } | null
       const contactName = contactInfo?.first_name ? `${contactInfo.first_name} ${contactInfo.last_name || ''}`.trim() : senderEmail
 
@@ -241,8 +255,8 @@ export async function POST(req: NextRequest) {
       `
 
       await sendEmail({
-        to: sukenduNotificationEmail,
-        fromEmail: process.env.SENDGRID_FROM_EMAIL || 'nikshitha.v@a3cend.com',
+        to: notificationEmail,
+        fromEmail: process.env.SENDGRID_FROM_EMAIL || notificationEmail,
         fromName: 'A3CEND Outreach Bot',
         subject: `[Lead Reply] ${contactName} from ${contactInfo?.company || senderEmail}: "${cleanSubject(subject)}"`,
         html: notificationHtml,
@@ -250,6 +264,7 @@ export async function POST(req: NextRequest) {
       })
     } catch (notifyErr) {
       console.warn('[Inbound] Failed to dispatch sales team notification email:', notifyErr)
+    }
     }
 
     // Must return 200 to prevent SendGrid retries

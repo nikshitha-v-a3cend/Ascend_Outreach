@@ -111,10 +111,7 @@ function safeFormatDistance(dateStr?: string | null): string {
         try {
           const res = await fetch('/api/cron/process-followups', {
             method: 'POST',
-            headers: {
-              'Authorization': 'Bearer a3cend_cron_secret_local_dev_only',
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ campaign_id: id, force: false }),
           })
           const data = await res.json() as { followup_sent?: number; enrolled_sent?: number }
@@ -199,10 +196,7 @@ function safeFormatDistance(dateStr?: string | null): string {
     try {
       const res = await fetch('/api/cron/process-followups', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer a3cend_cron_secret_local_dev_only`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           campaign_id: id,
           force: true,
