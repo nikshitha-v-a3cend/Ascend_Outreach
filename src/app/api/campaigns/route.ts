@@ -7,10 +7,14 @@ const CreateCampaignSchema = z.object({
   name: z.string().min(1, 'Campaign name is required'),
   from_name: z.string().min(1, 'From name is required'),
   from_email: z.string().email('Valid from email is required'),
+  from_title: z.string().optional(),
   initial_template_id: z.string().optional(),
   no_open_template_id: z.string().optional(),
   opened_no_reply_template_id: z.string().optional(),
   follow_up_delay_minutes: z.number().int().min(5).default(2880),
+  custom_instructions: z.string().optional(),
+  messaging_guidelines: z.string().optional(),
+  target_tone: z.string().optional(),
   test_mode: z.boolean().default(true),
 })
 
@@ -79,9 +83,32 @@ export async function POST(req: NextRequest) {
     }
 
     const db = getServerSupabase()
-    const { data, error } = await db
+    const insertPayload = {
+      name: parsed.data.name,
+      from_name: parsed.data.from_name,
+      from_email: parsed.data.from_email,
+      from_title: parsed.data.from_title || null,
+      initial_template_id: parsed.data.initial_template_id || null,
+      no_open_template_id: parsed.data.no_open_template_id || null,
+      opened_no_reply_template_id: parsed.data.opened_no_reply_template_id || null,
+      follow_up_delay_minutes: parsed.data.follow_up_delay_minutes,
+      custom_instructions: parsed.data.custom_instructions || null,
+      messaging_guidelines: parsed.data.messaging_guidelines || null,
+      target_tone: parsed.data.target_tone || 'Professional & Consultative',
+      test_mode: parsed.data.test_mode,
+      status: 'draft',
+    }
+
+    let { data, error } = await db
       .from('campaigns')
-      .insert({
+      .insert(insertPayload)
+      .select()
+      .single()
+
+    // Graceful fallback if database migration 002 has not been executed yet in Supabase
+    if (error && (error.message.includes('column') || error.message.includes('schema cache'))) {
+      console.warn('[Campaign] Retrying campaign creation with base schema columns:', error.message)
+      const basePayload = {
         name: parsed.data.name,
         from_name: parsed.data.from_name,
         from_email: parsed.data.from_email,
@@ -91,12 +118,14 @@ export async function POST(req: NextRequest) {
         follow_up_delay_minutes: parsed.data.follow_up_delay_minutes,
         test_mode: parsed.data.test_mode,
         status: 'draft',
-      })
-      .select()
-      .single()
+      }
+      const retryResult = await db.from('campaigns').insert(basePayload).select().single()
+      data = retryResult.data
+      error = retryResult.error
+    }
 
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 })
+    if (error || !data) {
+      return Response.json({ error: error?.message ?? 'Failed to create campaign' }, { status: 500 })
     }
 
     console.log('[Campaign] Created:', { campaign_id: data.id, name: data.name, test_mode: data.test_mode })

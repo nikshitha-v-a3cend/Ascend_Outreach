@@ -3,13 +3,15 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Play, Pause, Square, Send, RefreshCw, Upload, UserPlus, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, Play, Pause, Square, Send, RefreshCw, Upload, UserPlus, UserPlus2, Trash2, Users, MessageSquare, Sparkles, RotateCcw, Check } from 'lucide-react'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { StartCampaignModal } from '@/components/campaigns/StartCampaignModal'
 import { EnrollContactsModal } from '@/components/campaigns/EnrollContactsModal'
+import { AddContactModal } from '@/components/campaigns/AddContactModal'
 import { CampaignImportModal } from '@/components/campaigns/CampaignImportModal'
+import { AIDecisionModal } from '@/components/campaigns/AIDecisionModal'
 import { formatDistanceToNow } from 'date-fns'
-import type { Campaign } from '@/lib/supabase/types'
+import type { Campaign, Contact } from '@/lib/supabase/types'
 
 interface CampaignStats {
   total: number
@@ -37,14 +39,7 @@ interface CampaignContact {
   follow_up_sent_at: string | null
   follow_up_due_at: string | null
   updated_at: string
-  contact: {
-    id: string
-    first_name: string
-    last_name: string | null
-    email: string
-    company: string | null
-    designation: string | null
-  }
+  contact: Contact
 }
 
 export default function CampaignDetailPage() {
@@ -58,11 +53,25 @@ export default function CampaignDetailPage() {
   const [showStartModal, setShowStartModal] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [showEnrollModal, setShowEnrollModal] = useState(false)
+  const [showAddContactModal, setShowAddContactModal] = useState(false)
+  const [selectedAIContact, setSelectedAIContact] = useState<Contact | null>(null)
   const [removingContactId, setRemovingContactId] = useState<string | null>(null)
+  const [markingRepliedId, setMarkingRepliedId] = useState<string | null>(null)
   const [testEmail, setTestEmail] = useState('')
   const [testSending, setTestSending] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [actionLoading, setActionLoading] = useState('')
+
+function safeFormatDistance(dateStr?: string | null): string {
+  if (!dateStr) return '—'
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return '—'
+    return formatDistanceToNow(d, { addSuffix: true })
+  } catch {
+    return '—'
+  }
+}
 
   const load = useCallback(() => {
     Promise.all([
@@ -72,13 +81,62 @@ export default function CampaignDetailPage() {
       { campaign: Campaign; stats: CampaignStats },
       { contacts: CampaignContact[] }
     ]) => {
-      setCampaign(campData.campaign)
-      setStats(campData.stats)
-      setContacts(contactsData.contacts ?? [])
+      if (campData?.campaign) setCampaign(campData.campaign)
+      if (campData?.stats) setStats(campData.stats)
+      setContacts(contactsData?.contacts ?? [])
+    }).catch((err) => {
+      console.warn('[Page] Error loading campaign data:', err)
     }).finally(() => setLoading(false))
   }, [id])
 
+  const [lastOpenSync, setLastOpenSync] = useState<Date | null>(null)
+  const [lastFollowupRun, setLastFollowupRun] = useState<Date | null>(null)
+  const [bgSyncing, setBgSyncing] = useState(false)
+
   useEffect(() => { load() }, [load])
+
+  // Consolidated background runner: waits 10s after mount, then runs every 30s
+  useEffect(() => {
+    let timer: NodeJS.Timeout
+    const tick = async () => {
+      setBgSyncing(true)
+      try {
+        const res = await fetch(`/api/campaigns/${id}/sync-sendgrid`, { method: 'POST' })
+        if (res.ok) setLastOpenSync(new Date())
+      } catch { /* silent */ } finally {
+        setBgSyncing(false)
+      }
+
+      if (campaign?.status === 'active') {
+        try {
+          const res = await fetch('/api/cron/process-followups', {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer a3cend_cron_secret_local_dev_only',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ campaign_id: id, force: false }),
+          })
+          const data = await res.json() as { followup_sent?: number; enrolled_sent?: number }
+          if ((data.followup_sent && data.followup_sent > 0) || (data.enrolled_sent && data.enrolled_sent > 0)) {
+            setLastFollowupRun(new Date())
+          }
+        } catch { /* silent */ }
+      }
+
+      load()
+    }
+
+    const startDelay = setTimeout(() => {
+      timer = setInterval(tick, 30_000)
+    }, 10_000)
+
+    return () => {
+      clearTimeout(startDelay)
+      if (timer) clearInterval(timer)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, campaign?.status])
 
   const [runningFollowups, setRunningFollowups] = useState(false)
   const [syncingSendgrid, setSyncingSendgrid] = useState(false)
@@ -99,6 +157,42 @@ export default function CampaignDetailPage() {
     }
   }
 
+  const [resettingContactId, setResettingContactId] = useState<string | null>(null)
+  const [resettingAll, setResettingAll] = useState(false)
+  const [loggingReplyId, setLoggingReplyId] = useState<string | null>(null)
+
+  const handleResetAllContacts = async () => {
+    if (!confirm('Reset ALL contacts in this campaign back to Step 0 (queued)? This will let you test the entire outreach flow from scratch.')) return
+    setResettingAll(true)
+    try {
+      await fetch(`/api/campaigns/${id}/contacts`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reset_all: true }),
+      })
+      setCronFeedback('All contacts have been reset to Step 0 (queued)!')
+      load()
+    } finally {
+      setResettingAll(false)
+    }
+  }
+
+  const handleLogManualReply = async (ccId: string) => {
+    if (!confirm('Log that your team sent a manual reply to this prospect? If they do not respond back within the follow-up delay, the system will schedule an automated re-engagement follow-up.')) return
+    setLoggingReplyId(ccId)
+    try {
+      await fetch(`/api/campaigns/${id}/contacts`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaign_contact_id: ccId, manual_reply: true }),
+      })
+      setCronFeedback('Manual reply logged! The system is now awaiting the prospect’s response before re-engaging.')
+      load()
+    } finally {
+      setLoggingReplyId(null)
+    }
+  }
+
   const handleProcessFollowups = async () => {
     setRunningFollowups(true)
     setCronFeedback(null)
@@ -107,19 +201,55 @@ export default function CampaignDetailPage() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer a3cend_cron_secret_local_dev_only`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          campaign_id: id,
+          force: true,
+        }),
       })
-      const data = await res.json() as { processed?: number; sent?: number; skipped?: number; message?: string }
-      setCronFeedback(
-        data.sent !== undefined
-          ? `Processed ${data.processed ?? 0} contact(s): Sent ${data.sent} follow-up email(s), skipped ${data.skipped ?? 0}.`
-          : data.message || 'Follow-ups processed.'
-      )
+      const data = await res.json() as {
+        processed?: number
+        followup_processed?: number
+        sent?: number
+        followup_sent?: number
+        enrolled_sent?: number
+        skipped?: number
+        followup_skipped?: number
+        message?: string
+      }
+      if (data.enrolled_sent && data.enrolled_sent > 0 && data.followup_sent && data.followup_sent > 0) {
+        setCronFeedback(`⚡ Sent ${data.enrolled_sent} initial email(s) and ${data.followup_sent} follow-up email(s).`)
+        setLastFollowupRun(new Date())
+      } else if (data.enrolled_sent && data.enrolled_sent > 0) {
+        setCronFeedback(`⚡ Sent ${data.enrolled_sent} initial email(s)! Follow-ups scheduled after the delay period.`)
+        setLastFollowupRun(new Date())
+      } else if (data.followup_sent && data.followup_sent > 0) {
+        setCronFeedback(`⚡ Success: Sent ${data.followup_sent} follow-up email(s) dynamically!`)
+        setLastFollowupRun(new Date())
+      } else {
+        setCronFeedback(data.message || 'No contacts currently due for emails (contacts are waiting for their delay period, replied, or completed).')
+      }
       load()
     } catch {
       setCronFeedback('Failed to process follow-ups.')
     } finally {
       setRunningFollowups(false)
+    }
+  }
+
+  const handleResetContact = async (ccId: string) => {
+    if (!confirm('Reset this contact back to Step 0 (queued)? This allows you to re-test the entire outreach sequence from the start.')) return
+    setResettingContactId(ccId)
+    try {
+      await fetch(`/api/campaigns/${id}/contacts`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaign_contact_id: ccId, reset: true }),
+      })
+      load()
+    } finally {
+      setResettingContactId(null)
     }
   }
 
@@ -147,6 +277,21 @@ export default function CampaignDetailPage() {
       load()
     } finally {
       setRemovingContactId(null)
+    }
+  }
+
+  const handleMarkReplied = async (ccId: string) => {
+    if (!confirm('Mark this contact as replied? This will stop further follow-ups for them.')) return
+    setMarkingRepliedId(ccId)
+    try {
+      await fetch(`/api/campaigns/${id}/contacts`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaign_contact_id: ccId, replied: true }),
+      })
+      load()
+    } finally {
+      setMarkingRepliedId(null)
     }
   }
 
@@ -230,6 +375,15 @@ export default function CampaignDetailPage() {
             </button>
           )}
           <button
+            id="reset-all-btn"
+            className="btn btn-secondary"
+            onClick={handleResetAllContacts}
+            disabled={resettingAll}
+            title="Reset all contacts back to Step 0 (queued) to re-test the outreach sequence from scratch"
+          >
+            <RotateCcw size={14} /> {resettingAll ? 'Resetting...' : 'Reset All to Step 0'}
+          </button>
+          <button
             id="sync-sendgrid-btn"
             className="btn btn-secondary"
             onClick={handleSyncSendgrid}
@@ -238,9 +392,34 @@ export default function CampaignDetailPage() {
           >
             <RefreshCw size={14} /> {syncingSendgrid ? 'Syncing SendGrid...' : 'Sync SendGrid Opens'}
           </button>
-          <button className="btn btn-secondary" onClick={load} id="refresh-btn">
+          <button className="btn btn-secondary" onClick={() => load()} id="refresh-btn">
             <RefreshCw size={14} /> Refresh
           </button>
+          {/* Automation status indicator */}
+          <div style={{
+            display: 'flex', flexDirection: 'column', gap: 2, alignSelf: 'center',
+            background: 'var(--bg-card)', border: '1px solid var(--bg-border)',
+            borderRadius: 8, padding: '5px 10px', fontSize: 11, color: 'var(--text-muted)',
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: bgSyncing ? '#f59e0b' : 'var(--color-success)',
+                display: 'inline-block',
+              }} />
+              Opens: {bgSyncing ? 'Syncing…' : lastOpenSync ? `synced ${lastOpenSync.toLocaleTimeString()}` : 'syncs every 60s'}
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: '50%',
+                background: campaign?.status === 'active' ? 'var(--color-success)' : '#64748b',
+                display: 'inline-block',
+              }} />
+              Follow-ups: {campaign?.status === 'active'
+                ? lastFollowupRun ? `ran ${lastFollowupRun.toLocaleTimeString()}` : 'Manual or Cron'
+                : 'paused (campaign inactive)'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -365,6 +544,13 @@ export default function CampaignDetailPage() {
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button
+              id="add-contact-manual-btn"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setShowAddContactModal(true)}
+            >
+              <UserPlus2 size={14} /> Add Contact
+            </button>
+            <button
               id="enroll-existing-btn"
               className="btn btn-secondary btn-sm"
               onClick={() => setShowEnrollModal(true)}
@@ -408,6 +594,13 @@ export default function CampaignDetailPage() {
               >
                 <UserPlus size={14} /> Add from Database Contacts
               </button>
+              <button
+                id="empty-add-contact-manual-btn"
+                className="btn btn-secondary"
+                onClick={() => setShowAddContactModal(true)}
+              >
+                <UserPlus2 size={14} /> Add Contact Manually
+              </button>
             </div>
           </div>
         ) : (
@@ -422,6 +615,7 @@ export default function CampaignDetailPage() {
                   <th>Status</th>
                   <th>Opened</th>
                   <th>Replied</th>
+                  <th>Actions</th>
                   <th>Last Activity</th>
                   <th>Follow-up Due</th>
                   {['draft', 'paused'].includes(campaign.status) && <th style={{ width: 44 }}></th>}
@@ -441,27 +635,113 @@ export default function CampaignDetailPage() {
                     <td style={{ textAlign: 'center' }}>#{cc.current_step}</td>
                     <td><StatusBadge status={cc.status} /></td>
                     <td>
-                      <span style={{ color: cc.opened ? 'var(--color-success)' : 'var(--text-muted)', fontSize: 13 }}>
-                        {cc.opened ? '✓' : '—'}
-                      </span>
+                      {cc.opened ? (
+                        <span style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <Check size={13} strokeWidth={2.5} /> Opened
+                        </span>
+                      ) : cc.current_step > 0 ? (
+                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                          Not opened
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>
+                      )}
                     </td>
                     <td>
-                      <span style={{ color: cc.replied ? 'var(--color-success)' : 'var(--text-muted)', fontSize: 13 }}>
-                        {cc.replied ? '✓' : '—'}
-                      </span>
+                      {cc.replied ? (
+                        <span style={{ color: 'var(--color-success)', fontWeight: 600, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          <Check size={13} strokeWidth={2.5} /> Replied
+                        </span>
+                      ) : cc.current_step > 0 ? (
+                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                          No reply
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>—</span>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            fontSize: 11,
+                            padding: '3px 8px',
+                            color: 'var(--brand-primary)',
+                            borderColor: 'rgba(2, 128, 151, 0.35)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                          title="Inspect AI profile, classification, decision reasoning, and preview tailored email"
+                          onClick={() => setSelectedAIContact(cc.contact)}
+                        >
+                          <Sparkles size={11} /> AI Intel
+                        </button>
+                        {!cc.replied && cc.status !== 'manual_reply_sent' && (
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: 11, padding: '3px 8px', color: 'var(--brand-secondary)' }}
+                            title="Mark as replied (they replied directly to your inbox)"
+                            disabled={markingRepliedId === cc.id}
+                            onClick={() => handleMarkReplied(cc.id)}
+                          >
+                            <MessageSquare size={11} /> {markingRepliedId === cc.id ? '...' : 'Mark Replied'}
+                          </button>
+                        )}
+                        {cc.replied && cc.status !== 'manual_reply_sent' && (
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: 11, padding: '3px 8px', color: 'var(--brand-primary)', borderColor: 'rgba(2, 128, 151, 0.4)' }}
+                            title="Click after your team replies manually. If prospect doesn't respond back, automated re-engagement follow-up will resume."
+                            disabled={loggingReplyId === cc.id}
+                            onClick={() => handleLogManualReply(cc.id)}
+                          >
+                            <Send size={11} /> {loggingReplyId === cc.id ? '...' : 'Team Replied'}
+                          </button>
+                        )}
+                        {cc.status === 'manual_reply_sent' && (
+                          <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600 }}>⏳ Awaiting Prospect</span>
+                        )}
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: 11, padding: '3px 8px', color: 'var(--text-muted)' }}
+                          title="Reset contact to Step 0 (queued) to re-test the outreach sequence from scratch"
+                          disabled={resettingContactId === cc.id}
+                          onClick={() => handleResetContact(cc.id)}
+                        >
+                          <RotateCcw size={11} /> {resettingContactId === cc.id ? '...' : 'Reset'}
+                        </button>
+                        {cc.replied && cc.status !== 'manual_reply_sent' && (
+                          <span style={{ fontSize: 11, color: 'var(--color-success)' }}>✓ Replied</span>
+                        )}
+                      </div>
                     </td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
                       {(() => {
                         const activityTime = cc.email_1_replied_at || cc.email_1_opened_at || cc.email_1_sent_at
-                        if (!activityTime) return '—'
-                        return formatDistanceToNow(new Date(activityTime), { addSuffix: true })
+                        return safeFormatDistance(activityTime)
                       })()}
                     </td>
                     <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                      {cc.follow_up_due_at && !cc.follow_up_sent_at && !cc.replied && !cc.bounced
-                        ? formatDistanceToNow(new Date(cc.follow_up_due_at), { addSuffix: true })
-                        : cc.follow_up_sent_at
-                        ? 'Sent'
+                      {cc.status === 'manual_reply_sent'
+                        ? cc.follow_up_due_at
+                          ? `Re-engagement ${safeFormatDistance(cc.follow_up_due_at)}`
+                          : 'Awaiting Prospect'
+                        : cc.replied
+                        ? 'Replied (Stopped)'
+                        : cc.bounced
+                        ? 'Bounced'
+                        : cc.status === 'queued'
+                        ? 'Queued for Email #1'
+                        : cc.current_step >= 5
+                        ? 'Sequence Complete (5/5 Finished)'
+                        : cc.current_step >= 2
+                        ? 'Automated Done (2/2) · Paused'
+                        : cc.follow_up_due_at && !isNaN(new Date(cc.follow_up_due_at).getTime()) && new Date(cc.follow_up_due_at) > new Date()
+                        ? `Follow-up due ${safeFormatDistance(cc.follow_up_due_at)}`
+                        : cc.current_step === 1
+                        ? 'Sending Follow-up #1 on next tick...'
                         : '—'}
                     </td>
                     {['draft', 'paused'].includes(campaign.status) && (
@@ -514,6 +794,28 @@ export default function CampaignDetailPage() {
             load()
           }}
           onClose={() => setShowEnrollModal(false)}
+        />
+      )}
+
+      {showAddContactModal && (
+        <AddContactModal
+          campaignId={campaign.id}
+          campaignName={campaign.name}
+          onAdded={() => {
+            load()
+          }}
+          onClose={() => setShowAddContactModal(false)}
+        />
+      )}
+
+      {selectedAIContact && (
+        <AIDecisionModal
+          campaignId={campaign.id}
+          contact={selectedAIContact}
+          onClose={() => setSelectedAIContact(null)}
+          onSent={() => {
+            load()
+          }}
         />
       )}
     </div>

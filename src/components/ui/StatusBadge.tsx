@@ -5,7 +5,7 @@ type Status =
   | 'queued' | 'sending' | 'sent' | 'opened' | 'no_open'
   | 'follow_up_sent' | 'replied' | 'bounced' | 'unsubscribed'
   | 'failed' | 'stopped' | 'draft' | 'active' | 'paused'
-  | 'test_mode' | 'follow_up_sending'
+  | 'test_mode' | 'follow_up_sending' | 'manual_reply_sent'
 
 const labelMap: Record<Status, string> = {
   queued: 'Queued',
@@ -15,6 +15,7 @@ const labelMap: Record<Status, string> = {
   no_open: 'No Open',
   follow_up_sent: 'Follow-up Sent',
   follow_up_sending: 'Sending...',
+  manual_reply_sent: 'Awaiting Prospect',
   replied: 'Replied',
   bounced: 'Bounced',
   unsubscribed: 'Unsubscribed',
@@ -34,6 +35,7 @@ const classMap: Record<Status, string> = {
   no_open: 'badge-no-open',
   follow_up_sent: 'badge-follow-up',
   follow_up_sending: 'badge-follow-up',
+  manual_reply_sent: 'badge-opened',
   replied: 'badge-replied',
   bounced: 'badge-bounced',
   unsubscribed: 'badge-unsubscribed',

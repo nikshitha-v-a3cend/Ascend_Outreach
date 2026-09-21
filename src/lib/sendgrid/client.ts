@@ -18,8 +18,11 @@ export interface SendEmailOptions {
   fromEmail: string
   fromName: string
   replyTo?: string
-  templateId: string
-  dynamicTemplateData: {
+  subject?: string
+  html?: string
+  text?: string
+  templateId?: string
+  dynamicTemplateData?: {
     firstName?: string
     lastName?: string
     email?: string
@@ -51,22 +54,49 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
     }
   }
 
-  const msg: MailDataRequired = {
-    to: options.to,
-    from: {
-      email: options.fromEmail,
-      name: options.fromName,
-    },
-    replyTo: options.replyTo || options.fromEmail,
-    templateId: options.templateId,
-    dynamicTemplateData: options.dynamicTemplateData,
-    customArgs: options.customArgs
-      ? Object.fromEntries(
-          Object.entries(options.customArgs)
-            .filter(([, v]) => v !== undefined)
-            .map(([k, v]) => [k, String(v)])
-        )
-      : undefined,
+  const customArgsCleaned = options.customArgs
+    ? Object.fromEntries(
+        Object.entries(options.customArgs)
+          .filter(([, v]) => v !== undefined)
+          .map(([k, v]) => [k, String(v)])
+      )
+    : undefined
+
+  // Construct message payload depending on whether direct HTML or template is used
+  let msg: MailDataRequired
+  if (options.templateId) {
+    msg = {
+      to: options.to,
+      from: {
+        email: options.fromEmail,
+        name: options.fromName,
+      },
+      replyTo: options.replyTo || options.fromEmail,
+      templateId: options.templateId,
+      dynamicTemplateData: options.dynamicTemplateData || {},
+      customArgs: customArgsCleaned,
+      trackingSettings: {
+        openTracking: { enable: true },
+        clickTracking: { enable: true },
+      },
+    }
+  } else {
+    msg = {
+      to: options.to,
+      from: {
+        email: options.fromEmail,
+        name: options.fromName,
+      },
+      replyTo: options.replyTo || options.fromEmail,
+      subject: options.subject || 'Outreach from A3CEND',
+      html: options.html || `<p>${options.text || ''}</p>`,
+      text: options.text || '',
+      customArgs: customArgsCleaned,
+      trackingSettings: {
+        openTracking: { enable: true },
+        clickTracking: { enable: true },
+      },
+    }
   }
 
   try {

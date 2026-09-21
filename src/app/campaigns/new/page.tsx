@@ -22,16 +22,20 @@ export default function NewCampaignPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [customDelay, setCustomDelay] = useState('')
-  const [autoEnroll, setAutoEnroll] = useState(true)
+  const [autoEnroll, setAutoEnroll] = useState(false)
   const [availableContacts, setAvailableContacts] = useState<Array<{ id: string; first_name: string; email: string }>>([])
   const [form, setForm] = useState({
-    name: 'A3CEND Test Outreach',
-    from_name: process.env.NEXT_PUBLIC_SENDGRID_FROM_NAME ?? 'A3CEND',
+    name: 'A3CEND Outreach Sequence',
+    from_name: process.env.NEXT_PUBLIC_SENDGRID_FROM_NAME ?? 'Nikshitha V',
     from_email: process.env.NEXT_PUBLIC_SENDGRID_FROM_EMAIL ?? 'nikshitha.v@a3cend.com',
+    from_title: 'Enterprise Solutions & Growth',
     initial_template_id: process.env.NEXT_PUBLIC_INITIAL_TEMPLATE_ID ?? 'd-99cb8ad040a146cbb7b83277df6014fd',
     no_open_template_id: process.env.NEXT_PUBLIC_NO_OPEN_TEMPLATE_ID ?? 'd-35192641bf8a4ddc9933d1f191dc6cf1',
     opened_no_reply_template_id: process.env.NEXT_PUBLIC_OPENED_NO_REPLY_TEMPLATE_ID ?? 'd-991c648e50bb4c1c848587b89f2fa9f4',
     follow_up_delay_minutes: 5,
+    custom_instructions: '',
+    messaging_guidelines: '',
+    target_tone: 'Professional & Consultative',
     test_mode: true,
   })
 
@@ -130,16 +134,26 @@ export default function NewCampaignPage() {
             />
           </div>
 
-          <div className="grid-2">
+          <div className="grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
             <div className="form-group">
               <label className="form-label" htmlFor="from-name">From Name *</label>
               <input
                 id="from-name"
                 className="form-input"
-                placeholder="Your Name / Company"
+                placeholder="Your Name (e.g. Nikshitha V)"
                 value={form.from_name}
                 onChange={(e) => set('from_name', e.target.value)}
                 required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="from-title">Sender Title / Designation</label>
+              <input
+                id="from-title"
+                className="form-input"
+                placeholder="e.g. Enterprise Solutions & Growth"
+                value={form.from_title}
+                onChange={(e) => set('from_title', e.target.value)}
               />
             </div>
             <div className="form-group">
@@ -251,6 +265,57 @@ export default function NewCampaignPage() {
               />
             </div>
           )}
+        </div>
+
+        {/* AI Personalization & Strategy */}
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16, background: 'rgba(99, 102, 241, 0.03)', borderColor: 'rgba(99, 102, 241, 0.25)' }}>
+          <div>
+            <h3 style={{ fontWeight: 600, fontSize: 15, marginBottom: 4, color: '#4f46e5' }}>
+              ✨ AI Personalization & Strategy Guidelines
+            </h3>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              Provide custom instructions for the AI copywriter (e.g. key products to emphasize, tone of voice, or specific value propositions).
+            </p>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="custom-instructions">Custom AI Instructions / Angle</label>
+            <textarea
+              id="custom-instructions"
+              className="form-input"
+              rows={3}
+              placeholder="e.g. Focus on helping new delivery leads and consultants get ready for real client meetings without senior managers having to shadow every call."
+              value={form.custom_instructions}
+              onChange={(e) => set('custom_instructions', e.target.value)}
+            />
+          </div>
+
+          <div className="grid-2">
+            <div className="form-group">
+              <label className="form-label" htmlFor="messaging-guidelines">Messaging Guidelines / CTA Focus</label>
+              <input
+                id="messaging-guidelines"
+                className="form-input"
+                placeholder="e.g. Ask if they would like a quick 60-second video preview"
+                value={form.messaging_guidelines}
+                onChange={(e) => set('messaging_guidelines', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="target-tone">Target Tone</label>
+              <select
+                id="target-tone"
+                className="form-select"
+                value={form.target_tone}
+                onChange={(e) => set('target_tone', e.target.value)}
+              >
+                <option value="Technical & Direct">Technical & Direct</option>
+                <option value="Professional & Consultative">Professional & Consultative</option>
+                <option value="Executive Peer-to-Peer">Executive Peer-to-Peer</option>
+                <option value="Brief & High-Impact">Brief & High-Impact</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Contact Enrollment */}

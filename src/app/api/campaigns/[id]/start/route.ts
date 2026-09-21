@@ -1,11 +1,23 @@
 // src/app/api/campaigns/[id]/start/route.ts
-// Starts a campaign: validates, enrolls contacts, sends Email #1 to each
-// Sets follow_up_due_at ONLY after successful Email #1 send (per amended plan)
+// Starts a campaign: validates, then sends Email #1 (AI-personalized, with
+// template fallback) to a batch of queued contacts.
+//
+// SCALE NOTE: sending is intentionally batched (ENROLLMENT_BATCH_SIZE per
+// call) instead of looping over every enrolled contact in one request. A
+// campaign with hundreds or thousands of queued contacts would otherwise
+// keep this request open until a serverless function timeout kills it.
+// Whatever is left "queued" after this call is picked up automatically by
+// the cron endpoint's enrollment sweep every 5 minutes (see
+// src/app/api/cron/process-followups/route.ts) — no manual re-clicking,
+// no matter how large the contact list is.
 
 import { NextRequest } from 'next/server'
 import { getServerSupabase } from '@/lib/supabase/server'
-import { sendEmail } from '@/lib/sendgrid/client'
+import { runInitialSend } from '@/lib/ai/orchestration'
+import { ENROLLMENT_BATCH_SIZE, DAILY_SEND_LIMIT_PER_CAMPAIGN, getCampaignSentToday } from '@/lib/ai/safety'
 import type { Contact } from '@/lib/supabase/types'
+
+export const runtime = 'nodejs'
 
 export async function POST(
   req: NextRequest,
@@ -14,9 +26,6 @@ export async function POST(
   const { id: campaignId } = await params
 
   try {
-    const body = await req.json().catch(() => ({}))
-    const { contact_ids } = body as { contact_ids?: string[] }
-
     const db = getServerSupabase()
 
     // 1. Load campaign
@@ -37,184 +46,106 @@ export async function POST(
       )
     }
 
-    if (!campaign.initial_template_id) {
-      return Response.json({ error: 'Initial template ID is not configured' }, { status: 400 })
+    // NOTE: initial_template_id is no longer required to start a campaign.
+    // The AI generates personalized copy for every contact; a configured
+    // template is now only a fallback used if AI generation fails.
+
+    // 2. How many contacts are queued in total (for reporting + budget math)
+    const { count: totalQueued } = await db
+      .from('campaign_contacts')
+      .select('id', { count: 'exact', head: true })
+      .eq('campaign_id', campaignId)
+      .eq('status', 'queued')
+
+    if (!totalQueued || totalQueued === 0) {
+      return Response.json(
+        { error: 'No queued contacts found in this campaign. Add contacts before starting.' },
+        { status: 400 }
+      )
     }
 
-    // 2. Get contacts to enroll
-    let contactsQuery = db.from('contacts').select('*')
-    if (contact_ids && contact_ids.length > 0) {
-      contactsQuery = contactsQuery.in('id', contact_ids)
+    // 3. Set campaign to active (idempotent — safe if it's already active)
+    await db.from('campaigns').update({ status: 'active' }).eq('id', campaignId)
+
+    // 4. Hard backend safety rule: daily send cap per campaign. The AI
+    // cannot override this — it's enforced here regardless of any decision.
+    const sentToday = await getCampaignSentToday(db, campaignId)
+    const remainingBudget = DAILY_SEND_LIMIT_PER_CAMPAIGN - sentToday
+
+    if (remainingBudget <= 0) {
+      return Response.json({
+        success: true,
+        campaign_id: campaignId,
+        results: { sent: 0, failed: 0, skipped: 0 },
+        remaining_queued: totalQueued,
+        message: `Campaign is active, but today's send limit (${DAILY_SEND_LIMIT_PER_CAMPAIGN}) has already been reached. The remaining ${totalQueued} queued contacts will start sending automatically once the daily limit resets.`,
+      })
     }
-    const { data: contacts, error: conErr } = await contactsQuery
 
-    if (conErr || !contacts || contacts.length === 0) {
-      return Response.json({ error: 'No contacts found to enroll' }, { status: 400 })
+    // 5. Pull a bounded batch of queued contacts (oldest first) — this
+    // request always returns quickly no matter how large the campaign is.
+    const batchSize = Math.min(ENROLLMENT_BATCH_SIZE, remainingBudget)
+    const { data: enrolledCCs, error: conErr } = await db
+      .from('campaign_contacts')
+      .select('*, contacts(*)')
+      .eq('campaign_id', campaignId)
+      .eq('status', 'queued')
+      .order('created_at', { ascending: true })
+      .limit(batchSize)
+
+    if (conErr || !enrolledCCs || enrolledCCs.length === 0) {
+      return Response.json({ error: 'No queued contacts found to send to.' }, { status: 400 })
     }
 
-    // 3. Set campaign to active
-    await db
-      .from('campaigns')
-      .update({ status: 'active' })
-      .eq('id', campaignId)
-
-    // 4. For each contact: enroll + send Email #1
+    // 6. For each contact in this batch: claim it, then run the shared AI
+    // send pipeline (classify -> decide -> generate -> send -> record).
     const results = { sent: 0, failed: 0, skipped: 0 }
-    const delayMs = campaign.follow_up_delay_minutes * 60 * 1000
 
-    for (const contact of contacts as Contact[]) {
-      // Check if already enrolled
-      const { data: existing } = await db
-        .from('campaign_contacts')
-        .select('id, status')
-        .eq('campaign_id', campaignId)
-        .eq('contact_id', contact.id)
-        .single()
-
-      if (existing && existing.status !== 'queued') {
+    for (const cc of enrolledCCs) {
+      const contact = (Array.isArray(cc.contacts) ? cc.contacts[0] : cc.contacts) as Contact | null
+      if (!contact) {
         results.skipped++
         continue
       }
 
-      // Enroll contact (upsert)
-      const { data: cc, error: ccErr } = await db
+      // Atomic claim (also guards against the cron enrollment sweep
+      // picking up the same row concurrently)
+      const { data: claimed } = await db
         .from('campaign_contacts')
-        .upsert(
-          {
-            campaign_id: campaignId,
-            contact_id: contact.id,
-            status: 'sending',
-            current_step: 1,
-          },
-          { onConflict: 'campaign_id,contact_id' }
-        )
-        .select()
+        .update({ status: 'sending' })
+        .eq('id', cc.id)
+        .eq('status', 'queued')
+        .select('id')
         .single()
 
-      if (ccErr || !cc) {
-        console.error('[Start] Failed to enroll contact:', { contact_id: contact.id, error: ccErr?.message })
-        results.failed++
+      if (!claimed) {
+        results.skipped++
         continue
       }
 
-      // Create email_messages record (pending)
-      const { data: msgRecord } = await db
-        .from('email_messages')
-        .insert({
-          campaign_id: campaignId,
-          contact_id: contact.id,
-          campaign_contact_id: cc.id,
-          step: 1,
-          template_type: 'initial_outreach',
-          status: 'pending',
-        })
-        .select()
-        .single()
-
-      // Send Email #1 via SendGrid
-      const sendResult = await sendEmail({
-        to: contact.email,
-        fromEmail: campaign.from_email,
-        fromName: campaign.from_name,
-        templateId: campaign.initial_template_id,
-        dynamicTemplateData: {
-          firstName: contact.first_name,
-          lastName: contact.last_name ?? '',
-          email: contact.email,
-          company: contact.company ?? '',
-          designation: contact.designation ?? '',
-        },
-        customArgs: {
-          campaign_id: campaignId,
-          contact_id: contact.id,
-          campaign_contact_id: cc.id,
-          sequence_step: '1',
-        },
-      })
-
-      if (sendResult.success) {
-        const now = new Date()
-        const followUpDue = new Date(now.getTime() + delayMs)
-
-        // Update email_messages with success
-        if (msgRecord) {
-          await db
-            .from('email_messages')
-            .update({
-              status: 'sent',
-              sendgrid_message_id: sendResult.messageId ?? null,
-              sent_at: now.toISOString(),
-            })
-            .eq('id', msgRecord.id)
-        }
-
-        // Update campaign_contact — set follow_up_due_at ONLY after successful send
-        await db
-          .from('campaign_contacts')
-          .update({
-            status: 'sent',
-            current_step: 1,
-            email_1_sent_at: now.toISOString(),
-            follow_up_due_at: followUpDue.toISOString(),
-          })
-          .eq('id', cc.id)
-
-        // Log success
-        await db.from('campaign_logs').insert({
-          campaign_id: campaignId,
-          contact_id: contact.id,
-          level: 'info',
-          message: 'Email #1 sent successfully',
-          metadata: {
-            template_type: 'initial_outreach',
-            message_id: sendResult.messageId,
-            follow_up_due_at: followUpDue.toISOString(),
-          },
-        })
-
-        results.sent++
-      } else {
-        // Delivery failure: mark as failed, do NOT schedule follow-up
-        if (msgRecord) {
-          await db
-            .from('email_messages')
-            .update({ status: 'failed' })
-            .eq('id', msgRecord.id)
-        }
-
-        await db
-          .from('campaign_contacts')
-          .update({
-            status: 'failed',
-            stopped: true,
-          })
-          .eq('id', cc.id)
-
-        await db.from('campaign_logs').insert({
-          campaign_id: campaignId,
-          contact_id: contact.id,
-          level: 'error',
-          message: `Email #1 failed: ${sendResult.error}`,
-          metadata: {
-            error: sendResult.error,
-            status_code: sendResult.statusCode,
-          },
-        })
-
-        results.failed++
-      }
+      const outcome = await runInitialSend(db, campaign, contact, cc.id)
+      if (outcome.sent) results.sent++
+      else if (outcome.skipped) results.skipped++
+      else results.failed++
     }
 
-    console.log('[Campaign Start] Completed:', {
+    const remainingQueued = Math.max(totalQueued - enrolledCCs.length, 0)
+
+    console.log('[Campaign Start] Batch complete:', {
       campaign_id: campaignId,
       ...results,
+      remaining_queued: remainingQueued,
     })
 
     return Response.json({
       success: true,
       campaign_id: campaignId,
       results,
-      message: `Campaign started. Sent: ${results.sent}, Failed: ${results.failed}, Skipped: ${results.skipped}`,
+      remaining_queued: remainingQueued,
+      message:
+        remainingQueued > 0
+          ? `This batch: ${results.sent} sent, ${results.failed} failed, ${results.skipped} skipped. ${remainingQueued} more contacts are queued and will send automatically over the next few cron cycles — no further action needed.`
+          : `Campaign started. Sent: ${results.sent}, Failed: ${results.failed}, Skipped: ${results.skipped}`,
     })
   } catch (err: unknown) {
     console.error('[Campaign Start] Error:', err)

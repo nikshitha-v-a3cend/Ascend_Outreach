@@ -32,35 +32,61 @@ export async function POST(
 
   const db = getServerSupabase()
 
-  // 1. Get all contacts in this campaign
+  // 1. Get all contacts in this campaign (with sent timestamp for time-filtering)
   const { data: campaignContacts, error: ccErr } = await db
     .from('campaign_contacts')
-    .select('id, contact_id, status, opened, email_1_opened_at, contacts(id, email, first_name, last_name)')
+    .select('id, contact_id, status, opened, replied, stopped, email_1_sent_at, email_1_opened_at, contacts(id, email, first_name, last_name)')
     .eq('campaign_id', campaignId)
+    .eq('replied', false)   // skip already-replied contacts
+    .eq('stopped', false)   // skip stopped contacts
+    .not('email_1_sent_at', 'is', null) // only contacts where email was actually sent
 
   if (ccErr || !campaignContacts) {
     return Response.json({ error: ccErr?.message ?? 'Campaign contacts not found' }, { status: 404 })
   }
 
-  // 2. Fetch recent messages from SendGrid Activity API
+  if (campaignContacts.length === 0) {
+    return Response.json({ success: true, message: 'No eligible contacts to sync (all replied or not yet sent).', updatedContactsCount: 0 })
+  }
+
+  // Find the earliest sent_at across all contacts — use this as the time boundary for SendGrid query
+  const earliestSentAt = campaignContacts
+    .map(cc => cc.email_1_sent_at!)
+    .sort()[0]
+
+  // 2. Fetch recent messages from SendGrid Activity API (filtered by send date)
+  // Only pull messages sent on or after the earliest email in this campaign
+  const startDate = new Date(earliestSentAt).toISOString()
   let messages: SendGridMessage[] = []
   try {
-    const sgRes = await fetch('https://api.sendgrid.com/v3/messages?limit=100', {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    })
+    const sgRes = await fetch(
+      `https://api.sendgrid.com/v3/messages?limit=100&query=last_event_time%20BETWEEN%20TIMESTAMP%20%22${encodeURIComponent(startDate)}%22%20AND%20TIMESTAMP%20%22${encodeURIComponent(new Date().toISOString())}%22`,
+      { headers: { Authorization: `Bearer ${apiKey}` } }
+    )
 
     if (sgRes.ok) {
       const data = (await sgRes.json()) as { messages?: SendGridMessage[] }
       messages = data.messages ?? []
     } else {
-      const errText = await sgRes.text()
-      return Response.json({ error: `SendGrid API error: ${errText}` }, { status: 502 })
+      // Fallback: fetch without date filter if query fails
+      const fallbackRes = await fetch('https://api.sendgrid.com/v3/messages?limit=100', {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      })
+      if (fallbackRes.ok) {
+        const data = (await fallbackRes.json()) as { messages?: SendGridMessage[] }
+        messages = data.messages ?? []
+      } else {
+        const errText = await fallbackRes.text()
+        return Response.json({ error: `SendGrid API error: ${errText}` }, { status: 502 })
+      }
     }
   } catch (err: unknown) {
     return Response.json({ error: err instanceof Error ? err.message : 'Failed to reach SendGrid API' }, { status: 502 })
   }
 
   // 3. Map opens from SendGrid messages to campaign contacts
+  // KEY FIX: Only match messages sent AFTER this campaign's email_1_sent_at
+  // This prevents old campaign messages from polluting new campaign data
   let updatedCount = 0
   const updatedEmails: string[] = []
 
@@ -69,10 +95,15 @@ export async function POST(
     if (!contact?.email) continue
 
     const recipientEmail = contact.email.toLowerCase()
+    // Use the contact's actual sent time as the cutoff — only opens AFTER this email was sent count
+    const sentCutoff = new Date(cc.email_1_sent_at!).getTime()
 
-    // Find all SendGrid messages sent to this contact
+    // Find SendGrid messages for this contact, sent AFTER this campaign's email
     const matchingMsgs = messages.filter(
-      (m) => m.to_email && m.to_email.toLowerCase() === recipientEmail
+      (m) =>
+        m.to_email &&
+        m.to_email.toLowerCase() === recipientEmail &&
+        new Date(m.last_event_time).getTime() >= sentCutoff // ← CRITICAL: only this campaign's messages
     )
 
     const totalOpens = matchingMsgs.reduce((acc, m) => acc + (m.opens_count || 0), 0)

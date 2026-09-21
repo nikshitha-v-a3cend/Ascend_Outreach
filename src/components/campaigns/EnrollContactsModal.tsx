@@ -33,10 +33,8 @@ export function EnrollContactsModal({
       .then((data: { contacts: Contact[] }) => {
         const contacts = data.contacts ?? []
         setAllContacts(contacts)
-        // By default, pre-select all contacts that are NOT already in the campaign
-        const enrolledSet = new Set(alreadyEnrolledContactIds)
-        const available = contacts.filter((c) => !enrolledSet.has(c.id)).map((c) => c.id)
-        setSelectedIds(new Set(available))
+        // Start with no contacts selected by default so user picks deliberately
+        setSelectedIds(new Set())
       })
       .catch(() => setError('Failed to load contacts'))
       .finally(() => setLoading(false))

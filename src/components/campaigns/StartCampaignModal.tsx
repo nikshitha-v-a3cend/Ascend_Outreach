@@ -91,11 +91,10 @@ export function StartCampaignModal({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <SummaryRow label="Campaign" value={campaign.name} />
                 <SummaryRow label="Contacts" value={`${contactCount} recipient${contactCount !== 1 ? 's' : ''}`} highlight />
+                <SummaryRow label="AI Copywriter" value="Enabled (GPT-4o Role & Persona Personalization)" highlight />
                 <SummaryRow label="Emails that will send" value={`${contactCount} initial + up to ${contactCount} follow-ups`} highlight />
                 <SummaryRow label="From" value={`${campaign.from_name} <${campaign.from_email}>`} />
-                <SummaryRow label="Initial Template" value={campaign.initial_template_id ?? '(not set)'} code />
-                <SummaryRow label="No Open Template" value={campaign.no_open_template_id ?? '(not set)'} code />
-                <SummaryRow label="Opened No Reply Template" value={campaign.opened_no_reply_template_id ?? '(not set)'} code />
+                <SummaryRow label="Fallback Template" value={campaign.initial_template_id ?? '(not set)'} code />
                 <SummaryRow label="Follow-up Delay" value={delayLabel} highlight />
                 <SummaryRow label="Mode" value={campaign.test_mode ? 'TEST MODE' : 'Production'} />
               </div>

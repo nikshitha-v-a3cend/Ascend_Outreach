@@ -1,6 +1,7 @@
 // src/lib/supabase/database.types.ts
 // Database type definitions for Supabase JS v2
 // These match the schema in supabase/migrations/001_initial_schema.sql
+// and supabase/migrations/002_ai_engine.sql
 
 export type Json =
   | string
@@ -21,6 +22,18 @@ export interface Database {
           email: string
           company: string | null
           designation: string | null
+          linkedin_url?: string | null
+          company_domain?: string | null
+          department?: string | null
+          industry?: string | null
+          persona?: string | null
+          seniority?: string | null
+          role_category?: string | null
+          company_category?: string | null
+          relevant_use_cases?: string[] | null
+          ai_profile?: Json | null
+          ai_profile_updated_at?: string | null
+          apify_enrichment?: Json | null
           source: string | null
           created_at: string
           updated_at: string
@@ -32,6 +45,18 @@ export interface Database {
           email: string
           company?: string | null
           designation?: string | null
+          linkedin_url?: string | null
+          company_domain?: string | null
+          department?: string | null
+          industry?: string | null
+          persona?: string | null
+          seniority?: string | null
+          role_category?: string | null
+          company_category?: string | null
+          relevant_use_cases?: string[] | null
+          ai_profile?: Json | null
+          ai_profile_updated_at?: string | null
+          apify_enrichment?: Json | null
           source?: string | null
           created_at?: string
           updated_at?: string
@@ -43,6 +68,18 @@ export interface Database {
           email?: string
           company?: string | null
           designation?: string | null
+          linkedin_url?: string | null
+          company_domain?: string | null
+          department?: string | null
+          industry?: string | null
+          persona?: string | null
+          seniority?: string | null
+          role_category?: string | null
+          company_category?: string | null
+          relevant_use_cases?: string[] | null
+          ai_profile?: Json | null
+          ai_profile_updated_at?: string | null
+          apify_enrichment?: Json | null
           source?: string | null
           updated_at?: string
         }
@@ -56,10 +93,14 @@ export interface Database {
           test_mode: boolean
           from_name: string
           from_email: string
+          from_title?: string | null
           initial_template_id: string | null
           no_open_template_id: string | null
           opened_no_reply_template_id: string | null
           follow_up_delay_minutes: number
+          custom_instructions?: string | null
+          messaging_guidelines?: string | null
+          target_tone?: string | null
           created_at: string
           updated_at: string
         }
@@ -70,10 +111,14 @@ export interface Database {
           test_mode?: boolean
           from_name: string
           from_email: string
+          from_title?: string | null
           initial_template_id?: string | null
           no_open_template_id?: string | null
           opened_no_reply_template_id?: string | null
           follow_up_delay_minutes?: number
+          custom_instructions?: string | null
+          messaging_guidelines?: string | null
+          target_tone?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -84,13 +129,74 @@ export interface Database {
           test_mode?: boolean
           from_name?: string
           from_email?: string
+          from_title?: string | null
           initial_template_id?: string | null
           no_open_template_id?: string | null
           opened_no_reply_template_id?: string | null
           follow_up_delay_minutes?: number
+          custom_instructions?: string | null
+          messaging_guidelines?: string | null
+          target_tone?: string | null
           updated_at?: string
         }
         Relationships: []
+      }
+      ai_decisions: {
+        Row: {
+          id: string
+          contact_id: string
+          campaign_id: string | null
+          action: string
+          reason: string
+          strategy: string | null
+          tone: string | null
+          suggested_angle: string | null
+          wait_minutes: number | null
+          context: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          contact_id: string
+          campaign_id?: string | null
+          action: string
+          reason: string
+          strategy?: string | null
+          tone?: string | null
+          suggested_angle?: string | null
+          wait_minutes?: number | null
+          context?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          contact_id?: string
+          campaign_id?: string | null
+          action?: string
+          reason?: string
+          strategy?: string | null
+          tone?: string | null
+          suggested_angle?: string | null
+          wait_minutes?: number | null
+          context?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_decisions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_decisions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       campaign_contacts: {
         Row: {
@@ -169,11 +275,16 @@ export interface Database {
       email_messages: {
         Row: {
           id: string
-          campaign_id: string
-          contact_id: string
-          campaign_contact_id: string
+          campaign_id?: string | null
+          contact_id?: string | null
+          campaign_contact_id?: string | null
           step: number
           template_type: string
+          subject?: string | null
+          body_text?: string | null
+          body_html?: string | null
+          decision_id?: string | null
+          personalization_context?: Json | null
           sendgrid_message_id: string | null
           status: string
           sent_at: string | null
@@ -181,11 +292,16 @@ export interface Database {
         }
         Insert: {
           id?: string
-          campaign_id: string
-          contact_id: string
-          campaign_contact_id: string
+          campaign_id?: string | null
+          contact_id?: string | null
+          campaign_contact_id?: string | null
           step?: number
           template_type: string
+          subject?: string | null
+          body_text?: string | null
+          body_html?: string | null
+          decision_id?: string | null
+          personalization_context?: Json | null
           sendgrid_message_id?: string | null
           status?: string
           sent_at?: string | null
@@ -193,11 +309,16 @@ export interface Database {
         }
         Update: {
           id?: string
-          campaign_id?: string
-          contact_id?: string
-          campaign_contact_id?: string
+          campaign_id?: string | null
+          contact_id?: string | null
+          campaign_contact_id?: string | null
           step?: number
           template_type?: string
+          subject?: string | null
+          body_text?: string | null
+          body_html?: string | null
+          decision_id?: string | null
+          personalization_context?: Json | null
           sendgrid_message_id?: string | null
           status?: string
           sent_at?: string | null

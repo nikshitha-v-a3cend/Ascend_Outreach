@@ -176,8 +176,8 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="card" style={{ background: 'linear-gradient(135deg, #1a1f3a, #1e1a3a)', borderColor: '#6366f140' }}>
-                <div style={{ fontSize: 12, color: 'var(--brand-primary)', fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <div className="card" style={{ background: 'var(--bg-surface)', borderColor: 'var(--bg-border)' }}>
+                <div style={{ fontSize: 12, color: 'var(--brand-primary)', fontWeight: 700, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   Getting Started
                 </div>
                 <ol style={{ paddingLeft: 16, color: 'var(--text-secondary)', fontSize: 13, lineHeight: 2, margin: 0 }}>

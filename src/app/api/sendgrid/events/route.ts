@@ -70,8 +70,8 @@ async function processEvent(db: ReturnType<typeof import('@/lib/supabase/server'
 
     if (msgRecord) {
       emailMessageId = msgRecord.id
-      resolvedCampaignId = resolvedCampaignId ?? msgRecord.campaign_id
-      resolvedContactId = resolvedContactId ?? msgRecord.contact_id
+      resolvedCampaignId = resolvedCampaignId ?? msgRecord.campaign_id ?? null
+      resolvedContactId = resolvedContactId ?? msgRecord.contact_id ?? null
     }
   }
 
