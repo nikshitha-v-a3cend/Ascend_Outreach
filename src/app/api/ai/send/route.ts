@@ -3,7 +3,7 @@
 
 import { NextRequest } from 'next/server'
 import { getServerSupabase } from '@/lib/supabase/server'
-import { sendEmail } from '@/lib/sendgrid/client'
+import { sendEmail, buildOutreachReplyTo } from '@/lib/sendgrid/client'
 import { decideNextAction, generatePersonalizedEmail } from '@/lib/ai/service'
 import { classifyIfNeeded } from '@/lib/ai/orchestration'
 import type { Contact } from '@/lib/supabase/types'
@@ -238,6 +238,7 @@ export async function POST(req: NextRequest) {
       to: contact.email,
       fromEmail: campaign.from_email,
       fromName: campaign.from_name,
+      replyTo: buildOutreachReplyTo(campaign.from_email),
       subject: subject!,
       html: bodyHtml,
       text: bodyText,

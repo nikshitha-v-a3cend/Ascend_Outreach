@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 import { getServerSupabase } from '@/lib/supabase/server'
 import { enrichContactWithApify } from '@/lib/apify/enrichment'
 import { generatePersonalizedEmail } from '@/lib/ai/service'
-import { sendEmail } from '@/lib/sendgrid/client'
+import { sendEmail, buildOutreachReplyTo } from '@/lib/sendgrid/client'
 import { safeAiProfile } from '@/lib/ai/profile'
 import { getErrorMessage } from '@/lib/supabase/retry'
 import type { Contact } from '@/lib/supabase/types'
@@ -97,6 +97,7 @@ export async function POST(
       to: contact.email,
       fromEmail,
       fromName,
+      replyTo: buildOutreachReplyTo(fromEmail),
       subject: generatedEmail.subject,
       html: generatedEmail.body_html,
       text: generatedEmail.body_text,

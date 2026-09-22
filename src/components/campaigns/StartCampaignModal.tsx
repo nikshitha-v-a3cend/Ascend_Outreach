@@ -27,6 +27,11 @@ export function StartCampaignModal({
       ? `${Math.round(campaign.follow_up_delay_minutes / 60)} hours`
       : `${Math.round(campaign.follow_up_delay_minutes / 1440)} days`
 
+  const followUpsLabel =
+    campaign.max_follow_ups == null
+      ? 'Unlimited (until reply, unsubscribe, or bounce)'
+      : `${campaign.max_follow_ups}`
+
   const handleConfirm = async () => {
     setLoading(true)
     try {
@@ -96,6 +101,7 @@ export function StartCampaignModal({
                 <SummaryRow label="From" value={`${campaign.from_name} <${campaign.from_email}>`} />
                 <SummaryRow label="Fallback Template (optional)" value={campaign.initial_template_id ?? 'None — AI copy only'} code />
                 <SummaryRow label="Follow-up Delay" value={delayLabel} highlight />
+                <SummaryRow label="Number of Follow-ups" value={followUpsLabel} highlight />
                 <SummaryRow label="Mode" value={campaign.test_mode ? 'TEST MODE' : 'Production'} />
               </div>
 

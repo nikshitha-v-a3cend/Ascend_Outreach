@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { getServerSupabase } from '@/lib/supabase/server'
+import { DEFAULT_MAX_FOLLOW_UPS, ABSOLUTE_MAX_SEQUENCE_STEPS } from '@/lib/ai/safety'
 
 const CreateCampaignSchema = z.object({
   name: z.string().min(1, 'Campaign name is required'),
@@ -12,6 +13,9 @@ const CreateCampaignSchema = z.object({
   no_open_template_id: z.string().optional(),
   opened_no_reply_template_id: z.string().optional(),
   follow_up_delay_minutes: z.number().int().min(5).default(2880),
+  // Number of follow-up emails after the initial send; null = unlimited
+  // (still bounded by the absolute backend safety ceiling).
+  max_follow_ups: z.number().int().min(1).max(ABSOLUTE_MAX_SEQUENCE_STEPS - 1).nullable().default(DEFAULT_MAX_FOLLOW_UPS),
   custom_instructions: z.string().optional(),
   messaging_guidelines: z.string().optional(),
   target_tone: z.string().optional(),
@@ -92,6 +96,7 @@ export async function POST(req: NextRequest) {
       no_open_template_id: parsed.data.no_open_template_id || null,
       opened_no_reply_template_id: parsed.data.opened_no_reply_template_id || null,
       follow_up_delay_minutes: parsed.data.follow_up_delay_minutes,
+      max_follow_ups: parsed.data.max_follow_ups,
       custom_instructions: parsed.data.custom_instructions || null,
       messaging_guidelines: parsed.data.messaging_guidelines || null,
       target_tone: parsed.data.target_tone || 'Professional & Consultative',
@@ -105,7 +110,7 @@ export async function POST(req: NextRequest) {
       .select()
       .single()
 
-    // Graceful fallback if database migration 002 has not been executed yet in Supabase
+    // Graceful fallback if database migration 002/005 has not been executed yet in Supabase
     if (error && (error.message.includes('column') || error.message.includes('schema cache'))) {
       console.warn('[Campaign] Retrying campaign creation with base schema columns:', error.message)
       const basePayload = {

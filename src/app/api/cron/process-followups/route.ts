@@ -16,7 +16,8 @@
 //      whose follow_up_due_at has passed, and acts on whatever the AI
 //      returns (send / wait / stop / hand off) — not a fixed two-template
 //      branch. This loops across as many steps as the AI decides, capped
-//      by MAX_SEQUENCE_STEPS as a hard backend rule.
+//      by that campaign's own configured follow-up count (or the absolute
+//      backend ceiling for a campaign set to "unlimited").
 //
 // Every hard limit (max steps, min wait, daily send cap, batch sizes) lives
 // in src/lib/ai/safety.ts and is enforced regardless of what the AI
@@ -35,8 +36,7 @@ import {
   FOLLOWUP_BATCH_SIZE,
   CLASSIFY_BATCH_SIZE,
   CLASSIFY_CONCURRENCY,
-  MAX_SEQUENCE_STEPS,
-  AUTOMATED_SEQUENCE_STEPS,
+  ABSOLUTE_MAX_SEQUENCE_STEPS,
   DAILY_SEND_LIMIT_PER_CAMPAIGN,
   getCampaignSentToday,
 } from '@/lib/ai/safety'
@@ -226,9 +226,11 @@ export async function POST(req: NextRequest) {
     const activeCampaignIds = activeCampaigns.map((c) => c.id)
     const campaignMap = Object.fromEntries(activeCampaigns.map((c) => [c.id, c]))
 
-    // The automated background cron stops after 2 steps (Initial Email #1 + Follow-up Email #2).
-    // Steps 3+ are ONLY sent when the user explicitly clicks "Run Follow-ups Now" (forceSend = true)!
-    const maxStepForSweep = forceSend ? MAX_SEQUENCE_STEPS : AUTOMATED_SEQUENCE_STEPS
+    // Each campaign's own configured follow-up count (or "unlimited") is
+    // enforced per-row inside runFollowUpAction, where the campaign object
+    // is available. This is just a coarse pre-filter so the query doesn't
+    // scan rows that could never be actionable under any campaign config.
+    const maxStepForSweep = ABSOLUTE_MAX_SEQUENCE_STEPS
 
     // Build follow-up candidate query
     let followupQuery = db

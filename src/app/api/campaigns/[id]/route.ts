@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { getServerSupabase } from '@/lib/supabase/server'
+import { ABSOLUTE_MAX_SEQUENCE_STEPS } from '@/lib/ai/safety'
 
 // Deliberately excludes `status` and `test_mode` — those change through the
 // dedicated pause/resume/stop/start routes, which apply their own guards
@@ -18,6 +19,9 @@ const UpdateCampaignSchema = z.object({
   no_open_template_id: z.string().nullable().optional(),
   opened_no_reply_template_id: z.string().nullable().optional(),
   follow_up_delay_minutes: z.number().int().min(5).optional(),
+  // Number of follow-up emails after the initial send; null = unlimited
+  // (still bounded by the absolute backend safety ceiling).
+  max_follow_ups: z.number().int().min(1).max(ABSOLUTE_MAX_SEQUENCE_STEPS - 1).nullable().optional(),
   custom_instructions: z.string().nullable().optional(),
   messaging_guidelines: z.string().nullable().optional(),
   target_tone: z.string().nullable().optional(),

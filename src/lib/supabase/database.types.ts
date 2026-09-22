@@ -98,6 +98,7 @@ export interface Database {
           no_open_template_id: string | null
           opened_no_reply_template_id: string | null
           follow_up_delay_minutes: number
+          max_follow_ups: number | null
           custom_instructions?: string | null
           messaging_guidelines?: string | null
           target_tone?: string | null
@@ -116,6 +117,7 @@ export interface Database {
           no_open_template_id?: string | null
           opened_no_reply_template_id?: string | null
           follow_up_delay_minutes?: number
+          max_follow_ups?: number | null
           custom_instructions?: string | null
           messaging_guidelines?: string | null
           target_tone?: string | null
@@ -134,6 +136,7 @@ export interface Database {
           no_open_template_id?: string | null
           opened_no_reply_template_id?: string | null
           follow_up_delay_minutes?: number
+          max_follow_ups?: number | null
           custom_instructions?: string | null
           messaging_guidelines?: string | null
           target_tone?: string | null

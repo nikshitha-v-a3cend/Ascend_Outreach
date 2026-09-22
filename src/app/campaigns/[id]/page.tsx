@@ -13,6 +13,31 @@ import { AIDecisionModal } from '@/components/campaigns/AIDecisionModal'
 import { formatDistanceToNow } from 'date-fns'
 import type { Campaign, Contact } from '@/lib/supabase/types'
 
+const SEQ_DELAY_OPTIONS = [
+  { label: '5 minutes (Test)', value: '5' },
+  { label: '30 minutes (Test)', value: '30' },
+  { label: '1 hour (Test)', value: '60' },
+  { label: '1 day', value: '1440' },
+  { label: '2 days (Default)', value: '2880' },
+  { label: '3 days', value: '4320' },
+  { label: '5 days', value: '7200' },
+  { label: '7 days', value: '10080' },
+  { label: 'Custom (days)', value: 'custom_days' },
+  { label: 'Custom (minutes)', value: 'custom_minutes' },
+]
+
+const SEQ_MAX_FOLLOW_UPS_CEILING = 99
+
+function formatDelayMinutes(mins: number): string {
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'}`
+  if (mins < 1440) {
+    const hours = Math.round(mins / 60)
+    return `${hours} hour${hours === 1 ? '' : 's'}`
+  }
+  const days = Math.round(mins / 1440)
+  return `${days} day${days === 1 ? '' : 's'}`
+}
+
 interface CampaignStats {
   total: number
   queued: number
@@ -61,6 +86,12 @@ export default function CampaignDetailPage() {
   const [testSending, setTestSending] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
   const [actionLoading, setActionLoading] = useState('')
+  const [editingSequence, setEditingSequence] = useState(false)
+  const [savingSequence, setSavingSequence] = useState(false)
+  const [seqDelayPreset, setSeqDelayPreset] = useState('2880')
+  const [seqCustomDays, setSeqCustomDays] = useState('')
+  const [seqCustomMinutes, setSeqCustomMinutes] = useState('')
+  const [seqMaxFollowUps, setSeqMaxFollowUps] = useState<number | null>(2)
 
 function safeFormatDistance(dateStr?: string | null): string {
   if (!dateStr) return '—'
@@ -289,6 +320,50 @@ function safeFormatDistance(dateStr?: string | null): string {
     }
   }
 
+  const startEditingSequence = () => {
+    if (!campaign) return
+    const mins = campaign.follow_up_delay_minutes
+    const preset = SEQ_DELAY_OPTIONS.find((o) => o.value !== 'custom_days' && o.value !== 'custom_minutes' && parseInt(o.value) === mins)
+    if (preset) {
+      setSeqDelayPreset(preset.value)
+    } else if (mins % 1440 === 0) {
+      setSeqDelayPreset('custom_days')
+      setSeqCustomDays(String(mins / 1440))
+    } else {
+      setSeqDelayPreset('custom_minutes')
+      setSeqCustomMinutes(String(mins))
+    }
+    setSeqMaxFollowUps(campaign.max_follow_ups === undefined ? 2 : campaign.max_follow_ups)
+    setEditingSequence(true)
+  }
+
+  const handleSaveSequence = async () => {
+    const delay =
+      seqDelayPreset === 'custom_minutes'
+        ? Math.max(parseInt(seqCustomMinutes) || 5, 5)
+        : seqDelayPreset === 'custom_days'
+        ? Math.max((parseInt(seqCustomDays) || 1) * 1440, 5)
+        : parseInt(seqDelayPreset)
+
+    setSavingSequence(true)
+    try {
+      const res = await fetch(`/api/campaigns/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ follow_up_delay_minutes: delay, max_follow_ups: seqMaxFollowUps }),
+      })
+      if (res.ok) {
+        setEditingSequence(false)
+        load()
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setCronFeedback(data.error || 'Failed to update follow-up settings.')
+      }
+    } finally {
+      setSavingSequence(false)
+    }
+  }
+
   const sendTestEmail = async () => {
     if (!testEmail) return
     setTestSending(true)
@@ -312,6 +387,13 @@ function safeFormatDistance(dateStr?: string | null): string {
   }
 
   if (!campaign) return <div className="alert alert-error">Campaign not found</div>
+
+  // undefined (not null) means the max_follow_ups column isn't present on
+  // this row yet — the migration adding it hasn't run against this
+  // database — so fall back to the historical default rather than reading
+  // it as an explicit "unlimited".
+  const totalSteps =
+    campaign.max_follow_ups === undefined ? 3 : campaign.max_follow_ups === null ? null : campaign.max_follow_ups + 1
 
   return (
     <div>
@@ -465,7 +547,18 @@ function safeFormatDistance(dateStr?: string | null): string {
       <div className="grid-2" style={{ marginBottom: 14, gap: 12 }}>
         {/* Sequence config summary */}
         <div className="card card-compact">
-          <h3 style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>Configuration</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <h3 style={{ fontWeight: 600, fontSize: 13, margin: 0 }}>Configuration</h3>
+            {!editingSequence && (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: 11, padding: '3px 8px' }}
+                onClick={startEditingSequence}
+              >
+                Edit Follow-ups
+              </button>
+            )}
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--text-muted)' }}>Initial Template</span>
@@ -483,6 +576,121 @@ function safeFormatDistance(dateStr?: string | null): string {
               <span style={{ color: 'var(--text-muted)' }}>From</span>
               <span>{campaign.from_name} &lt;{campaign.from_email}&gt;</span>
             </div>
+
+            {!editingSequence ? (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Follow-up Interval</span>
+                  <span>every {formatDelayMinutes(campaign.follow_up_delay_minutes)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Number of Follow-ups</span>
+                  <span>{campaign.max_follow_ups == null ? 'Unlimited' : campaign.max_follow_ups}</span>
+                </div>
+              </>
+            ) : (
+              <div style={{
+                marginTop: 4,
+                padding: 10,
+                background: 'var(--bg-page)',
+                border: '1px solid var(--bg-border)',
+                borderRadius: 8,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" htmlFor="seq-delay-select" style={{ fontSize: 11 }}>Follow-up Interval</label>
+                  <select
+                    id="seq-delay-select"
+                    className="form-select"
+                    value={seqDelayPreset}
+                    onChange={(e) => setSeqDelayPreset(e.target.value)}
+                  >
+                    {SEQ_DELAY_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {seqDelayPreset === 'custom_days' && (
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" htmlFor="seq-custom-days" style={{ fontSize: 11 }}>Send a follow-up every N days</label>
+                    <input
+                      id="seq-custom-days"
+                      className="form-input"
+                      type="number"
+                      min={1}
+                      placeholder="e.g. 4"
+                      value={seqCustomDays}
+                      onChange={(e) => setSeqCustomDays(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {seqDelayPreset === 'custom_minutes' && (
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" htmlFor="seq-custom-minutes" style={{ fontSize: 11 }}>Custom Delay (minutes, min 5)</label>
+                    <input
+                      id="seq-custom-minutes"
+                      className="form-input"
+                      type="number"
+                      min={5}
+                      placeholder="e.g. 120"
+                      value={seqCustomMinutes}
+                      onChange={(e) => setSeqCustomMinutes(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: seqMaxFollowUps !== null ? 8 : 0 }}>
+                    <input
+                      type="checkbox"
+                      id="seq-unlimited"
+                      checked={seqMaxFollowUps === null}
+                      onChange={(e) => setSeqMaxFollowUps(e.target.checked ? null : 2)}
+                    />
+                    <label htmlFor="seq-unlimited" style={{ cursor: 'pointer', fontSize: 12 }}>
+                      Follow up indefinitely
+                    </label>
+                  </div>
+                  {seqMaxFollowUps !== null && (
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label" htmlFor="seq-max-followups" style={{ fontSize: 11 }}>Number of Follow-ups</label>
+                      <input
+                        id="seq-max-followups"
+                        className="form-input"
+                        type="number"
+                        min={1}
+                        max={SEQ_MAX_FOLLOW_UPS_CEILING}
+                        value={seqMaxFollowUps}
+                        onChange={(e) => setSeqMaxFollowUps(Math.min(Math.max(parseInt(e.target.value) || 1, 1), SEQ_MAX_FOLLOW_UPS_CEILING))}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    style={{ fontSize: 11 }}
+                    onClick={handleSaveSequence}
+                    disabled={savingSequence}
+                  >
+                    {savingSequence ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: 11 }}
+                    onClick={() => setEditingSequence(false)}
+                    disabled={savingSequence}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -728,10 +936,8 @@ function safeFormatDistance(dateStr?: string | null): string {
                         ? 'Bounced'
                         : cc.status === 'queued'
                         ? 'Queued for Email #1'
-                        : cc.current_step >= 5
-                        ? 'Sequence Complete (5/5 Finished)'
-                        : cc.current_step >= 2
-                        ? 'Automated Done (2/2) · Paused'
+                        : totalSteps != null && cc.current_step >= totalSteps
+                        ? `Sequence Complete (${totalSteps}/${totalSteps} Finished)`
                         : cc.follow_up_due_at && !isNaN(new Date(cc.follow_up_due_at).getTime()) && new Date(cc.follow_up_due_at) > new Date()
                         ? `Follow-up due ${safeFormatDistance(cc.follow_up_due_at)}`
                         : cc.current_step === 1

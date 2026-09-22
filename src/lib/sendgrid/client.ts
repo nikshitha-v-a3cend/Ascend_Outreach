@@ -142,3 +142,30 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
 export async function verifySendGridConnection(): Promise<boolean> {
   return Boolean(apiKey && apiKey.startsWith('SG.'))
 }
+
+// Tag appended to the mailbox-local part of the Reply-To address on
+// outreach sends (nikshitha.v@a3cend.com -> nikshitha.v+outreach@a3cend.com).
+// Override via env if a different tag is preferred.
+const OUTREACH_REPLY_TAG = process.env.SENDGRID_REPLY_TO_TAG || 'outreach'
+
+/**
+ * Builds a plus-addressed Reply-To for a real outreach send.
+ *
+ * Prospect replies still land in the sender's actual mailbox exactly as
+ * before (Gmail, Google Workspace, and Microsoft 365 all deliver
+ * plus-addressed mail straight to the base account) — this doesn't divert
+ * anything away from the human inbox. What it adds is a stable, distinct
+ * "To" pattern (…+outreach@…) that a mailbox filter can match to also
+ * forward a copy to SendGrid's Inbound Parse address, which is what feeds
+ * the /api/sendgrid/inbound webhook (auto-stop + the sukendu notification).
+ * Without a distinct tag there's no reliable way to filter "outreach
+ * replies" out of someone's normal inbox traffic.
+ */
+export function buildOutreachReplyTo(fromEmail: string): string {
+  const atIndex = fromEmail.indexOf('@')
+  if (atIndex <= 0) return fromEmail
+  const local = fromEmail.slice(0, atIndex)
+  const domain = fromEmail.slice(atIndex + 1)
+  if (local.includes('+')) return fromEmail // already tagged — don't double-tag
+  return `${local}+${OUTREACH_REPLY_TAG}@${domain}`
+}

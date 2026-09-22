@@ -6,25 +6,43 @@ import Link from 'next/link'
 import { ArrowLeft, Save } from 'lucide-react'
 
 const DELAY_OPTIONS = [
-  { label: '5 minutes (Test)', value: 5 },
-  { label: '30 minutes (Test)', value: 30 },
-  { label: '1 hour (Test)', value: 60 },
-  { label: '1 day', value: 1440 },
-  { label: '2 days (Default)', value: 2880 },
-  { label: '3 days', value: 4320 },
-  { label: '5 days', value: 7200 },
-  { label: '7 days', value: 10080 },
-  { label: 'Custom (minutes)', value: 0 },
+  { label: '5 minutes (Test)', value: '5' },
+  { label: '30 minutes (Test)', value: '30' },
+  { label: '1 hour (Test)', value: '60' },
+  { label: '1 day', value: '1440' },
+  { label: '2 days (Default)', value: '2880' },
+  { label: '3 days', value: '4320' },
+  { label: '5 days', value: '7200' },
+  { label: '7 days', value: '10080' },
+  { label: 'Custom (days)', value: 'custom_days' },
+  { label: 'Custom (minutes)', value: 'custom_minutes' },
 ]
+
+const MAX_FOLLOW_UPS_CEILING = 99
 
 export default function NewCampaignPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
-  const [customDelay, setCustomDelay] = useState('')
+  const [delayPreset, setDelayPreset] = useState('2880')
+  const [customDelayMinutes, setCustomDelayMinutes] = useState('')
+  const [customDelayDays, setCustomDelayDays] = useState('')
   const [autoEnroll, setAutoEnroll] = useState(false)
   const [availableContacts, setAvailableContacts] = useState<Array<{ id: string; first_name: string; email: string }>>([])
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    name: string
+    from_name: string
+    from_email: string
+    from_title: string
+    initial_template_id: string
+    no_open_template_id: string
+    opened_no_reply_template_id: string
+    max_follow_ups: number | null
+    custom_instructions: string
+    messaging_guidelines: string
+    target_tone: string
+    test_mode: boolean
+  }>({
     name: 'A3CEND Outreach Sequence',
     from_name: process.env.NEXT_PUBLIC_SENDGRID_FROM_NAME ?? '',
     from_email: process.env.NEXT_PUBLIC_SENDGRID_FROM_EMAIL ?? '',
@@ -32,7 +50,7 @@ export default function NewCampaignPage() {
     initial_template_id: process.env.NEXT_PUBLIC_INITIAL_TEMPLATE_ID ?? 'd-99cb8ad040a146cbb7b83277df6014fd',
     no_open_template_id: process.env.NEXT_PUBLIC_NO_OPEN_TEMPLATE_ID ?? 'd-35192641bf8a4ddc9933d1f191dc6cf1',
     opened_no_reply_template_id: process.env.NEXT_PUBLIC_OPENED_NO_REPLY_TEMPLATE_ID ?? 'd-991c648e50bb4c1c848587b89f2fa9f4',
-    follow_up_delay_minutes: 5,
+    max_follow_ups: 2,
     custom_instructions: '',
     messaging_guidelines: '',
     target_tone: 'Professional & Consultative',
@@ -48,17 +66,11 @@ export default function NewCampaignPage() {
       .catch(() => {})
   }, [])
 
-  const set = (field: string, value: string | number | boolean) =>
+  const set = (field: string, value: string | number | boolean | null) =>
     setForm((f) => ({ ...f, [field]: value }))
 
-  const handleDelayChange = (value: string) => {
-    const num = parseInt(value)
-    if (num === 0) {
-      set('follow_up_delay_minutes', 5) // default until custom entered
-    } else {
-      set('follow_up_delay_minutes', num)
-    }
-  }
+  const showCustomMinutes = delayPreset === 'custom_minutes'
+  const showCustomDays = delayPreset === 'custom_days'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,9 +78,11 @@ export default function NewCampaignPage() {
     setSaving(true)
 
     const delay =
-      form.follow_up_delay_minutes === 0
-        ? parseInt(customDelay) || 5
-        : form.follow_up_delay_minutes
+      delayPreset === 'custom_minutes'
+        ? Math.max(parseInt(customDelayMinutes) || 5, 5)
+        : delayPreset === 'custom_days'
+        ? Math.max((parseInt(customDelayDays) || 1) * 1440, 5)
+        : parseInt(delayPreset)
 
     try {
       const res = await fetch('/api/campaigns', {
@@ -100,8 +114,6 @@ export default function NewCampaignPage() {
       setSaving(false)
     }
   }
-
-  const showCustom = form.follow_up_delay_minutes === 0
 
   return (
     <div style={{ maxWidth: 640 }}>
@@ -233,17 +245,17 @@ export default function NewCampaignPage() {
           <div>
             <h3 style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>Follow-up Timing</h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              How long to wait before sending a follow-up. In test mode, use 5 minutes to test the full workflow quickly.
+              How long to wait between emails, and how many follow-ups to send. In test mode, use 5 minutes to test the full workflow quickly.
             </p>
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="delay-select">Follow-up Delay</label>
+            <label className="form-label" htmlFor="delay-select">Follow-up Interval</label>
             <select
               id="delay-select"
               className="form-select"
-              value={form.follow_up_delay_minutes}
-              onChange={(e) => handleDelayChange(e.target.value)}
+              value={delayPreset}
+              onChange={(e) => setDelayPreset(e.target.value)}
             >
               {DELAY_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -251,7 +263,22 @@ export default function NewCampaignPage() {
             </select>
           </div>
 
-          {showCustom && (
+          {showCustomDays && (
+            <div className="form-group">
+              <label className="form-label" htmlFor="custom-delay-days">Send a follow-up every N days</label>
+              <input
+                id="custom-delay-days"
+                className="form-input"
+                type="number"
+                min={1}
+                placeholder="e.g. 4"
+                value={customDelayDays}
+                onChange={(e) => setCustomDelayDays(e.target.value)}
+              />
+            </div>
+          )}
+
+          {showCustomMinutes && (
             <div className="form-group">
               <label className="form-label" htmlFor="custom-delay">Custom Delay (minutes, min 5)</label>
               <input
@@ -260,11 +287,43 @@ export default function NewCampaignPage() {
                 type="number"
                 min={5}
                 placeholder="e.g. 120"
-                value={customDelay}
-                onChange={(e) => setCustomDelay(e.target.value)}
+                value={customDelayMinutes}
+                onChange={(e) => setCustomDelayMinutes(e.target.value)}
               />
             </div>
           )}
+
+          <div className="form-group" style={{ marginTop: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: form.max_follow_ups !== null ? 10 : 0 }}>
+              <input
+                type="checkbox"
+                id="unlimited-followups"
+                checked={form.max_follow_ups === null}
+                onChange={(e) => set('max_follow_ups', e.target.checked ? null : 2)}
+              />
+              <label htmlFor="unlimited-followups" style={{ cursor: 'pointer', fontSize: 14, color: 'var(--text-primary)' }}>
+                Follow up indefinitely <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(until they reply, unsubscribe, or bounce)</span>
+              </label>
+            </div>
+
+            {form.max_follow_ups !== null && (
+              <>
+                <label className="form-label" htmlFor="max-follow-ups">Number of Follow-ups</label>
+                <input
+                  id="max-follow-ups"
+                  className="form-input"
+                  type="number"
+                  min={1}
+                  max={MAX_FOLLOW_UPS_CEILING}
+                  value={form.max_follow_ups}
+                  onChange={(e) => set('max_follow_ups', Math.min(Math.max(parseInt(e.target.value) || 1, 1), MAX_FOLLOW_UPS_CEILING))}
+                />
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                  After the initial email, how many follow-ups to send (default 2) before automatically stopping.
+                </span>
+              </>
+            )}
+          </div>
         </div>
 
         {/* AI Personalization & Strategy */}

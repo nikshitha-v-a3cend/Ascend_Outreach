@@ -6,11 +6,38 @@
 // the Phase 7 "hard rules" layer: caps that hold even if the model
 // hallucinates a bad decision or a prompt produces unexpected output.
 
-// Background automated sequence stops after 2 steps (Initial Email #1 + Follow-up Email #2).
-export const AUTOMATED_SEQUENCE_STEPS = 2
+// Default number of follow-up emails (after the initial send) for a newly
+// created campaign, matching the product's historical behavior. Each
+// campaign can override this (or go "unlimited") in its own settings.
+export const DEFAULT_MAX_FOLLOW_UPS = 2
 
-// Upper safety ceiling for manual "Run Follow-ups Now" triggers (5 steps max: Initial + 4 Follow-ups).
-export const MAX_SEQUENCE_STEPS = 5
+// Absolute hard ceiling on total emails (initial + follow-ups) a single
+// contact can ever receive within one campaign — enforced regardless of
+// what the campaign is configured to do, including a campaign set to
+// "unlimited" follow-ups. This is the backstop against a runaway decision
+// loop or a bad config; it's intentionally generous since
+// DAILY_SEND_LIMIT_PER_CAMPAIGN and the per-step delay already bound the
+// real-world pace of sends.
+export const ABSOLUTE_MAX_SEQUENCE_STEPS = 100
+
+/**
+ * Resolves a campaign's configured follow-up count into the actual max
+ * total steps for that campaign (the initial email counts as step 1),
+ * always bounded by ABSOLUTE_MAX_SEQUENCE_STEPS.
+ *
+ * `null` is a deliberate "unlimited" choice (only reachable once the
+ * max_follow_ups column exists and a campaign was explicitly set that way).
+ * `undefined` means the column wasn't present on the row at all — e.g. the
+ * migration adding it hasn't been applied to this database yet — and is
+ * treated as the historical default rather than "unlimited", so an
+ * un-migrated database doesn't silently start sending far more follow-ups
+ * than before.
+ */
+export function resolveMaxSteps(maxFollowUps: number | null | undefined): number {
+  if (maxFollowUps === undefined) return Math.min(DEFAULT_MAX_FOLLOW_UPS + 1, ABSOLUTE_MAX_SEQUENCE_STEPS)
+  if (maxFollowUps === null) return ABSOLUTE_MAX_SEQUENCE_STEPS
+  return Math.min(maxFollowUps + 1, ABSOLUTE_MAX_SEQUENCE_STEPS)
+}
 
 // Floor for how soon the next action can fire after this one, in minutes.
 // Prevents an AI-suggested wait_minutes of 0 (or a missing value) from

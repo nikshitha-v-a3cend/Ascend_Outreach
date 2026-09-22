@@ -13,12 +13,12 @@
 // always has a safe fallback (a configured SendGrid template, or skipping
 // the contact with a logged reason). AI failure never crashes a request.
 
-import { sendEmail } from '@/lib/sendgrid/client'
+import { sendEmail, buildOutreachReplyTo } from '@/lib/sendgrid/client'
 import { classifyContact, decideNextAction, generatePersonalizedEmail } from '@/lib/ai/service'
 import { enrichContactWithApify } from '@/lib/apify/enrichment'
 import { safeAiProfile, mergeAiProfile } from '@/lib/ai/profile'
 import { withSupabaseRetry } from '@/lib/supabase/retry'
-import { MAX_SEQUENCE_STEPS, MIN_WAIT_MINUTES } from '@/lib/ai/safety'
+import { resolveMaxSteps, MIN_WAIT_MINUTES } from '@/lib/ai/safety'
 import type { Contact, TemplateType } from '@/lib/supabase/types'
 
 type DB = ReturnType<typeof import('@/lib/supabase/server').getServerSupabase>
@@ -33,6 +33,7 @@ export interface CampaignLite {
   no_open_template_id?: string | null
   opened_no_reply_template_id?: string | null
   follow_up_delay_minutes: number
+  max_follow_ups?: number | null
   custom_instructions?: string | null
   messaging_guidelines?: string | null
   target_tone?: string | null
@@ -235,6 +236,7 @@ export async function runInitialSend(
         to: contact.email,
         fromEmail: campaign.from_email,
         fromName: campaign.from_name,
+        replyTo: buildOutreachReplyTo(campaign.from_email),
         subject: personalizedEmail.subject,
         html: personalizedEmail.body_html,
         text: personalizedEmail.body_text,
@@ -244,6 +246,7 @@ export async function runInitialSend(
         to: contact.email,
         fromEmail: campaign.from_email,
         fromName: campaign.from_name,
+        replyTo: buildOutreachReplyTo(campaign.from_email),
         templateId: campaign.initial_template_id!,
         dynamicTemplateData: {
           firstName: contact.first_name,
@@ -318,8 +321,11 @@ export async function runInitialSend(
  *  - anything else (SEND_FOLLOWUP, CHANGE_SUBJECT, CHANGE_MESSAGING_ANGLE,
  *    SEND_RELEVANT_CONTENT, ASK_A_QUESTION, or any future action the model
  *    invents): generate a personalized email for this step and send it.
- * MAX_SEQUENCE_STEPS is enforced here regardless of what the AI says —
- * the backend, not the model, owns "never contact indefinitely."
+ * The campaign's own configured follow-up count (campaign.max_follow_ups,
+ * null = unlimited) is enforced here regardless of what the AI says, always
+ * bounded by the absolute backend safety ceiling — the backend, not the
+ * model (and not even the campaign's own config), owns "never contact
+ * indefinitely."
  *
  * `cc` must reflect the row's state from BEFORE it was claimed (status
  * flipped to 'follow_up_sending') so this function can correctly restore
@@ -462,14 +468,16 @@ export async function runFollowUpAction(
     return { outcome: 'handed_to_human' }
   }
 
-  // Hard safety cap — never contact indefinitely, no matter what the AI says.
-  if (nextStep > MAX_SEQUENCE_STEPS) {
+  // Hard safety cap — never contact indefinitely, no matter what the AI
+  // says or what the campaign is configured to do.
+  const maxSteps = resolveMaxSteps(campaign.max_follow_ups)
+  if (nextStep > maxSteps) {
     await db.from('campaign_contacts').update({ stopped: true, status: 'stopped' }).eq('id', cc.id)
     await db.from('campaign_logs').insert({
       campaign_id: cc.campaign_id,
       contact_id: cc.contact_id,
       level: 'info',
-      message: `Sequence cap (${MAX_SEQUENCE_STEPS} emails) reached — stopping outreach regardless of AI suggestion (${decision.action})`,
+      message: `Sequence cap (${maxSteps} emails) reached — stopping outreach regardless of AI suggestion (${decision.action})`,
       metadata: { decision_id: decisionId, ai_action: decision.action },
     })
     return { outcome: 'stopped' }
@@ -561,6 +569,7 @@ export async function runFollowUpAction(
         to: contact.email,
         fromEmail: campaign.from_email,
         fromName: campaign.from_name,
+        replyTo: buildOutreachReplyTo(campaign.from_email),
         subject: personalizedEmail.subject,
         html: personalizedEmail.body_html,
         text: personalizedEmail.body_text,
@@ -570,6 +579,7 @@ export async function runFollowUpAction(
         to: contact.email,
         fromEmail: campaign.from_email,
         fromName: campaign.from_name,
+        replyTo: buildOutreachReplyTo(campaign.from_email),
         templateId: fallbackTemplateId!,
         dynamicTemplateData: {
           firstName: contact.first_name,
@@ -592,7 +602,7 @@ export async function runFollowUpAction(
     }
 
     const waitMinutes = Math.max(decision.wait_minutes || campaign.follow_up_delay_minutes, MIN_WAIT_MINUTES)
-    const reachedCap = nextStep >= MAX_SEQUENCE_STEPS
+    const reachedCap = nextStep >= maxSteps
     const nextDue = reachedCap ? null : new Date(Date.now() + waitMinutes * 60 * 1000).toISOString()
 
     await db
